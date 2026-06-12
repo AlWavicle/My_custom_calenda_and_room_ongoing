@@ -1,0 +1,201 @@
+<html>
+<head>
+<title>CalendarAdapter.java</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #0033b3;}
+.s1 { color: #080808;}
+.s2 { color: #8c8c8c; font-style: italic;}
+.s3 { color: #1750eb;}
+.s4 { color: #067d17;}
+.s5 { color: #0037a6;}
+.ln { color: #aeb3c2; font-weight: normal; font-style: normal; }
+</style>
+</head>
+<body bgcolor="#ffffff">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#c0c0c0" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+CalendarAdapter.java</font>
+</center></td></tr></table>
+<pre><a name="l1"><span class="ln">1    </span></a><span class="s0">package </span><span class="s1">com.example.my_custom_calenda_1;</span>
+<a name="l2"><span class="ln">2    </span></a>
+<a name="l3"><span class="ln">3    </span></a><span class="s0">import </span><span class="s1">android.view.LayoutInflater;</span>
+<a name="l4"><span class="ln">4    </span></a><span class="s0">import </span><span class="s1">android.view.View;</span>
+<a name="l5"><span class="ln">5    </span></a><span class="s0">import </span><span class="s1">android.view.ViewGroup;</span>
+<a name="l6"><span class="ln">6    </span></a><span class="s0">import </span><span class="s1">android.widget.LinearLayout;</span>
+<a name="l7"><span class="ln">7    </span></a><span class="s0">import </span><span class="s1">android.widget.TextView;</span>
+<a name="l8"><span class="ln">8    </span></a>
+<a name="l9"><span class="ln">9    </span></a><span class="s0">import </span><span class="s1">androidx.annotation.NonNull;</span>
+<a name="l10"><span class="ln">10   </span></a><span class="s0">import </span><span class="s1">androidx.recyclerview.widget.RecyclerView;</span>
+<a name="l11"><span class="ln">11   </span></a>
+<a name="l12"><span class="ln">12   </span></a><span class="s0">import </span><span class="s1">java.time.LocalDate;</span>
+<a name="l13"><span class="ln">13   </span></a><span class="s0">import </span><span class="s1">java.util.ArrayList;</span>
+<a name="l14"><span class="ln">14   </span></a>
+<a name="l15"><span class="ln">15   </span></a><span class="s2">/**</span>
+<a name="l16"><span class="ln">16   </span></a> <span class="s2">* 1. 코드 구성 및 핵심 구조 설명:</span>
+<a name="l17"><span class="ln">17   </span></a> <span class="s2">* 이 어댑터는 'Multi-ViewType' 전략을 사용하여 두 가지 형태의 레이아웃을 하나의 리사이클러뷰에서 관리합니다.</span>
+<a name="l18"><span class="ln">18   </span></a> <span class="s2">* - TYPE_DAY (0): 개별 날짜 셀</span>
+<a name="l19"><span class="ln">19   </span></a> <span class="s2">* - TYPE_DETAIL (1): 클릭 시 삽입되는 가로형 상세 정보 칸</span>
+<a name="l20"><span class="ln">20   </span></a> <span class="s2">*</span>
+<a name="l21"><span class="ln">21   </span></a> <span class="s2">* 사용자가 날짜를 클릭하면 해당 날짜가 포함된 행의 끝 인덱스를 계산하여 데이터 리스트(items)에</span>
+<a name="l22"><span class="ln">22   </span></a> <span class="s2">* 상세 정보를 삽입(notifyItemInserted)하거나 삭제(notifyItemRemoved)함으로써 동적 레이아웃 변화를 구현합니다.</span>
+<a name="l23"><span class="ln">23   </span></a> <span class="s2">*/</span>
+<a name="l24"><span class="ln">24   </span></a><span class="s0">public class </span><span class="s1">CalendarAdapter </span><span class="s0">extends </span><span class="s1">RecyclerView.Adapter&lt;RecyclerView.ViewHolder&gt; {</span>
+<a name="l25"><span class="ln">25   </span></a>
+<a name="l26"><span class="ln">26   </span></a>    <span class="s0">private static final int </span><span class="s1">TYPE_DAY = </span><span class="s3">0</span><span class="s1">;</span>
+<a name="l27"><span class="ln">27   </span></a>    <span class="s0">private static final int </span><span class="s1">TYPE_DETAIL = </span><span class="s3">1</span><span class="s1">;</span>
+<a name="l28"><span class="ln">28   </span></a>
+<a name="l29"><span class="ln">29   </span></a>    <span class="s2">// native) ArrayList&lt;Object&gt;: 다양한 타입(LocalDate 및 Event 리스트)을 하나의 리스트에서 관리하기 위한 객체 지향형 구조입니다.</span>
+<a name="l30"><span class="ln">30   </span></a>    <span class="s0">private final </span><span class="s1">ArrayList&lt;Object&gt; items; </span>
+<a name="l31"><span class="ln">31   </span></a>    <span class="s0">private final </span><span class="s1">ArrayList&lt;Event&gt; eventList;</span>
+<a name="l32"><span class="ln">32   </span></a>    <span class="s0">private final </span><span class="s1">OnItemListener onItemListener;</span>
+<a name="l33"><span class="ln">33   </span></a>    <span class="s0">private int </span><span class="s1">detailPosition = -</span><span class="s3">1</span><span class="s1">;</span>
+<a name="l34"><span class="ln">34   </span></a>
+<a name="l35"><span class="ln">35   </span></a>    <span class="s0">public interface </span><span class="s1">OnItemListener {</span>
+<a name="l36"><span class="ln">36   </span></a>        <span class="s0">void </span><span class="s1">onItemClick(LocalDate date, ArrayList&lt;Event&gt; events, </span><span class="s0">int </span><span class="s1">position);</span>
+<a name="l37"><span class="ln">37   </span></a>    <span class="s1">}</span>
+<a name="l38"><span class="ln">38   </span></a>
+<a name="l39"><span class="ln">39   </span></a>    <span class="s0">public </span><span class="s1">CalendarAdapter(ArrayList&lt;LocalDate&gt; dayList, ArrayList&lt;Event&gt; eventList, OnItemListener onItemListener) {</span>
+<a name="l40"><span class="ln">40   </span></a>        <span class="s0">this</span><span class="s1">.items = </span><span class="s0">new </span><span class="s1">ArrayList&lt;&gt;(dayList);</span>
+<a name="l41"><span class="ln">41   </span></a>        <span class="s0">this</span><span class="s1">.eventList = eventList;</span>
+<a name="l42"><span class="ln">42   </span></a>        <span class="s0">this</span><span class="s1">.onItemListener = onItemListener;</span>
+<a name="l43"><span class="ln">43   </span></a>    <span class="s1">}</span>
+<a name="l44"><span class="ln">44   </span></a>
+<a name="l45"><span class="ln">45   </span></a>    <span class="s1">@Override</span>
+<a name="l46"><span class="ln">46   </span></a>    <span class="s0">public int </span><span class="s1">getItemViewType(</span><span class="s0">int </span><span class="s1">position) {</span>
+<a name="l47"><span class="ln">47   </span></a>        <span class="s2">// native) instanceof: 객체의 실제 타입을 확인하여 날짜인지 상세 정보인지 판별합니다.</span>
+<a name="l48"><span class="ln">48   </span></a>        <span class="s0">if </span><span class="s1">(items.get(position) </span><span class="s0">instanceof </span><span class="s1">LocalDate || items.get(position) == </span><span class="s0">null</span><span class="s1">) {</span>
+<a name="l49"><span class="ln">49   </span></a>            <span class="s0">return </span><span class="s1">TYPE_DAY;</span>
+<a name="l50"><span class="ln">50   </span></a>        <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+<a name="l51"><span class="ln">51   </span></a>            <span class="s0">return </span><span class="s1">TYPE_DETAIL;</span>
+<a name="l52"><span class="ln">52   </span></a>        <span class="s1">}</span>
+<a name="l53"><span class="ln">53   </span></a>    <span class="s1">}</span>
+<a name="l54"><span class="ln">54   </span></a>
+<a name="l55"><span class="ln">55   </span></a>    <span class="s1">@NonNull</span>
+<a name="l56"><span class="ln">56   </span></a>    <span class="s1">@Override</span>
+<a name="l57"><span class="ln">57   </span></a>    <span class="s0">public </span><span class="s1">RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, </span><span class="s0">int </span><span class="s1">viewType) {</span>
+<a name="l58"><span class="ln">58   </span></a>        <span class="s2">// native) LayoutInflater: XML 레이아웃 파일을 실제 View 객체로 메모리에 로드하는 안드로이드 핵심 클래스입니다.</span>
+<a name="l59"><span class="ln">59   </span></a>        <span class="s1">LayoutInflater inflater = LayoutInflater.from(parent.getContext());</span>
+<a name="l60"><span class="ln">60   </span></a>        <span class="s0">if </span><span class="s1">(viewType == TYPE_DAY) {</span>
+<a name="l61"><span class="ln">61   </span></a>            <span class="s1">View view = inflater.inflate(R.layout.calendar_cell, parent, </span><span class="s0">false</span><span class="s1">);</span>
+<a name="l62"><span class="ln">62   </span></a>            <span class="s0">return new </span><span class="s1">CalendarViewHolder(view);</span>
+<a name="l63"><span class="ln">63   </span></a>        <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+<a name="l64"><span class="ln">64   </span></a>            <span class="s1">View view = inflater.inflate(R.layout.event_detail_item, parent, </span><span class="s0">false</span><span class="s1">);</span>
+<a name="l65"><span class="ln">65   </span></a>            <span class="s0">return new </span><span class="s1">DetailViewHolder(view);</span>
+<a name="l66"><span class="ln">66   </span></a>        <span class="s1">}</span>
+<a name="l67"><span class="ln">67   </span></a>    <span class="s1">}</span>
+<a name="l68"><span class="ln">68   </span></a>
+<a name="l69"><span class="ln">69   </span></a>    <span class="s1">@Override</span>
+<a name="l70"><span class="ln">70   </span></a>    <span class="s0">public void </span><span class="s1">onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, </span><span class="s0">int </span><span class="s1">position) {</span>
+<a name="l71"><span class="ln">71   </span></a>        <span class="s0">if </span><span class="s1">(holder </span><span class="s0">instanceof </span><span class="s1">CalendarViewHolder) {</span>
+<a name="l72"><span class="ln">72   </span></a>            <span class="s1">CalendarViewHolder dayHolder = (CalendarViewHolder) holder;</span>
+<a name="l73"><span class="ln">73   </span></a>            <span class="s1">LocalDate date = (LocalDate) items.get(position);</span>
+<a name="l74"><span class="ln">74   </span></a>            <span class="s2">// native) removeAllViews: 기존에 추가되었던 형광펜 뷰들을 초기화하여 뷰 재사용 시 발생할 수 있는 문제를 방지합니다.</span>
+<a name="l75"><span class="ln">75   </span></a>            <span class="s1">dayHolder.highlighterLayout.removeAllViews();</span>
+<a name="l76"><span class="ln">76   </span></a>
+<a name="l77"><span class="ln">77   </span></a>            <span class="s0">if </span><span class="s1">(date == </span><span class="s0">null</span><span class="s1">) {</span>
+<a name="l78"><span class="ln">78   </span></a>                <span class="s1">dayHolder.dayText.setText(</span><span class="s4">&quot;&quot;</span><span class="s1">);</span>
+<a name="l79"><span class="ln">79   </span></a>                <span class="s1">dayHolder.itemView.setOnClickListener(</span><span class="s0">null</span><span class="s1">);</span>
+<a name="l80"><span class="ln">80   </span></a>            <span class="s1">} </span><span class="s0">else </span><span class="s1">{</span>
+<a name="l81"><span class="ln">81   </span></a>                <span class="s1">dayHolder.dayText.setText(String.valueOf(date.getDayOfMonth()));</span>
+<a name="l82"><span class="ln">82   </span></a>
+<a name="l83"><span class="ln">83   </span></a>                <span class="s1">ArrayList&lt;Event&gt; eventsOnDay = </span><span class="s0">new </span><span class="s1">ArrayList&lt;&gt;();</span>
+<a name="l84"><span class="ln">84   </span></a>                <span class="s0">for </span><span class="s1">(<a href="Event.java.html">Event</a> event : eventList) {</span>
+<a name="l85"><span class="ln">85   </span></a>                    <span class="s0">if </span><span class="s1">(event.isWithin(date)) {</span>
+<a name="l86"><span class="ln">86   </span></a>                        <span class="s1">eventsOnDay.add(event);</span>
+<a name="l87"><span class="ln">87   </span></a>
+<a name="l88"><span class="ln">88   </span></a>                        <span class="s2">// native) android.view.View: 형광펜 효과를 주기 위해 빈 뷰 객체를 동적으로 생성합니다.</span>
+<a name="l89"><span class="ln">89   </span></a>                        <span class="s1">View highlighter = </span><span class="s0">new </span><span class="s1">View(dayHolder.itemView.getContext());</span>
+<a name="l90"><span class="ln">90   </span></a>                        <span class="s2">// native) LinearLayout.LayoutParams: 부모 뷰 내에서의 배치 정보(너비, 높이, 마진 등)를 설정합니다.</span>
+<a name="l91"><span class="ln">91   </span></a>                        <span class="s1">LinearLayout.LayoutParams params = </span><span class="s0">new </span><span class="s1">LinearLayout.LayoutParams(</span>
+<a name="l92"><span class="ln">92   </span></a>                                <span class="s1">ViewGroup.LayoutParams.MATCH_PARENT, </span><span class="s3">25</span><span class="s1">);</span>
+<a name="l93"><span class="ln">93   </span></a>                        <span class="s1">params.setMargins(</span><span class="s3">0</span><span class="s1">, </span><span class="s3">2</span><span class="s1">, </span><span class="s3">0</span><span class="s1">, </span><span class="s3">2</span><span class="s1">);</span>
+<a name="l94"><span class="ln">94   </span></a>                        <span class="s1">highlighter.setLayoutParams(params);</span>
+<a name="l95"><span class="ln">95   </span></a>                        <span class="s1">highlighter.setBackgroundColor(event.getColor());</span>
+<a name="l96"><span class="ln">96   </span></a>                        <span class="s2">// native) addView: 생성한 형광펜 뷰를 레이아웃에 동적으로 추가합니다.</span>
+<a name="l97"><span class="ln">97   </span></a>                        <span class="s1">dayHolder.highlighterLayout.addView(highlighter);</span>
+<a name="l98"><span class="ln">98   </span></a>                    <span class="s1">}</span>
+<a name="l99"><span class="ln">99   </span></a>                <span class="s1">}</span>
+<a name="l100"><span class="ln">100  </span></a>
+<a name="l101"><span class="ln">101  </span></a>                <span class="s1">dayHolder.itemView.setOnClickListener(v -&gt; {</span>
+<a name="l102"><span class="ln">102  </span></a>                    <span class="s1">onItemListener.onItemClick(date, eventsOnDay, holder.getAdapterPosition());</span>
+<a name="l103"><span class="ln">103  </span></a>                <span class="s1">});</span>
+<a name="l104"><span class="ln">104  </span></a>            <span class="s1">}</span>
+<a name="l105"><span class="ln">105  </span></a>        <span class="s1">} </span><span class="s0">else if </span><span class="s1">(holder </span><span class="s0">instanceof </span><span class="s1">DetailViewHolder) {</span>
+<a name="l106"><span class="ln">106  </span></a>            <span class="s1">DetailViewHolder detailHolder = (DetailViewHolder) holder;</span>
+<a name="l107"><span class="ln">107  </span></a>            <span class="s1">ArrayList&lt;Event&gt; events = (ArrayList&lt;Event&gt;) items.get(position);</span>
+<a name="l108"><span class="ln">108  </span></a>            
+<a name="l109"><span class="ln">109  </span></a>            <span class="s2">// native) StringBuilder: 여러 문자열을 효율적으로 합치기 위한 자바 네이티브 클래스입니다.</span>
+<a name="l110"><span class="ln">110  </span></a>            <span class="s1">StringBuilder sb = </span><span class="s0">new </span><span class="s1">StringBuilder();</span>
+<a name="l111"><span class="ln">111  </span></a>            <span class="s0">for </span><span class="s1">(<a href="Event.java.html">Event</a> e : events) {</span>
+<a name="l112"><span class="ln">112  </span></a>                <span class="s1">sb.append(e.getName()).append(</span><span class="s4">&quot;</span><span class="s5">\n</span><span class="s4">&quot;</span><span class="s1">);</span>
+<a name="l113"><span class="ln">113  </span></a>            <span class="s1">}</span>
+<a name="l114"><span class="ln">114  </span></a>            <span class="s1">detailHolder.detailTitle.setText(</span><span class="s4">&quot;선택한 날짜의 일정&quot;</span><span class="s1">);</span>
+<a name="l115"><span class="ln">115  </span></a>            <span class="s1">detailHolder.detailContent.setText(sb.toString().trim());</span>
+<a name="l116"><span class="ln">116  </span></a>        <span class="s1">}</span>
+<a name="l117"><span class="ln">117  </span></a>    <span class="s1">}</span>
+<a name="l118"><span class="ln">118  </span></a>
+<a name="l119"><span class="ln">119  </span></a>    <span class="s2">/**</span>
+<a name="l120"><span class="ln">120  </span></a>     <span class="s2">* 상세 정보 칸을 중간에 삽입/삭제하는 핵심 함수</span>
+<a name="l121"><span class="ln">121  </span></a>     <span class="s2">*/</span>
+<a name="l122"><span class="ln">122  </span></a>    <span class="s0">public void </span><span class="s1">showDetail(</span><span class="s0">int </span><span class="s1">dayPosition, ArrayList&lt;Event&gt; events) {</span>
+<a name="l123"><span class="ln">123  </span></a>        <span class="s0">if </span><span class="s1">(detailPosition != -</span><span class="s3">1</span><span class="s1">) {</span>
+<a name="l124"><span class="ln">124  </span></a>            <span class="s2">// native) items.remove: 리스트에서 기존 상세 칸 데이터를 제거합니다.</span>
+<a name="l125"><span class="ln">125  </span></a>            <span class="s1">items.remove(detailPosition);</span>
+<a name="l126"><span class="ln">126  </span></a>            <span class="s2">// native) notifyItemRemoved: 특정 위치의 아이템이 삭제되었음을 알리고 애니메이션을 트리거합니다.</span>
+<a name="l127"><span class="ln">127  </span></a>            <span class="s1">notifyItemRemoved(detailPosition);</span>
+<a name="l128"><span class="ln">128  </span></a>            <span class="s0">if </span><span class="s1">(dayPosition &gt; detailPosition) {</span>
+<a name="l129"><span class="ln">129  </span></a>                <span class="s1">dayPosition--;</span>
+<a name="l130"><span class="ln">130  </span></a>            <span class="s1">}</span>
+<a name="l131"><span class="ln">131  </span></a>            <span class="s1">detailPosition = -</span><span class="s3">1</span><span class="s1">;</span>
+<a name="l132"><span class="ln">132  </span></a>        <span class="s1">}</span>
+<a name="l133"><span class="ln">133  </span></a>
+<a name="l134"><span class="ln">134  </span></a>        <span class="s0">if </span><span class="s1">(events == </span><span class="s0">null </span><span class="s1">|| events.isEmpty()) {</span>
+<a name="l135"><span class="ln">135  </span></a>            <span class="s2">// native) notifyDataSetChanged: 리스트 전체를 다시 그리게 하여 UI를 갱신합니다.</span>
+<a name="l136"><span class="ln">136  </span></a>            <span class="s1">notifyDataSetChanged(); </span>
+<a name="l137"><span class="ln">137  </span></a>            <span class="s0">return</span><span class="s1">;</span>
+<a name="l138"><span class="ln">138  </span></a>        <span class="s1">}</span>
+<a name="l139"><span class="ln">139  </span></a>
+<a name="l140"><span class="ln">140  </span></a>        <span class="s0">int </span><span class="s1">row = dayPosition / </span><span class="s3">7</span><span class="s1">;</span>
+<a name="l141"><span class="ln">141  </span></a>        <span class="s0">int </span><span class="s1">insertPos = (row + </span><span class="s3">1</span><span class="s1">) * </span><span class="s3">7</span><span class="s1">;</span>
+<a name="l142"><span class="ln">142  </span></a>        <span class="s0">if </span><span class="s1">(insertPos &gt; items.size()) insertPos = items.size();</span>
+<a name="l143"><span class="ln">143  </span></a>
+<a name="l144"><span class="ln">144  </span></a>        <span class="s2">// native) items.add(index, object): 특정 위치에 데이터를 삽입합니다.</span>
+<a name="l145"><span class="ln">145  </span></a>        <span class="s1">items.add(insertPos, events);</span>
+<a name="l146"><span class="ln">146  </span></a>        <span class="s1">detailPosition = insertPos;</span>
+<a name="l147"><span class="ln">147  </span></a>        <span class="s2">// native) notifyItemInserted: 새로운 아이템이 삽입되었음을 알리고 칸을 밀어내는 애니메이션을 수행합니다.</span>
+<a name="l148"><span class="ln">148  </span></a>        <span class="s1">notifyItemInserted(detailPosition);</span>
+<a name="l149"><span class="ln">149  </span></a>    <span class="s1">}</span>
+<a name="l150"><span class="ln">150  </span></a>
+<a name="l151"><span class="ln">151  </span></a>    <span class="s1">@Override</span>
+<a name="l152"><span class="ln">152  </span></a>    <span class="s0">public int </span><span class="s1">getItemCount() {</span>
+<a name="l153"><span class="ln">153  </span></a>        <span class="s0">return </span><span class="s1">items.size();</span>
+<a name="l154"><span class="ln">154  </span></a>    <span class="s1">}</span>
+<a name="l155"><span class="ln">155  </span></a>
+<a name="l156"><span class="ln">156  </span></a>    <span class="s2">// native) RecyclerView.ViewHolder: 각 아이템의 뷰 객체를 보관하여 findViewById 호출 횟수를 줄이는 최적화 클래스입니다.</span>
+<a name="l157"><span class="ln">157  </span></a>    <span class="s0">static class </span><span class="s1">CalendarViewHolder </span><span class="s0">extends </span><span class="s1">RecyclerView.ViewHolder {</span>
+<a name="l158"><span class="ln">158  </span></a>        <span class="s1">TextView dayText;</span>
+<a name="l159"><span class="ln">159  </span></a>        <span class="s1">LinearLayout highlighterLayout;</span>
+<a name="l160"><span class="ln">160  </span></a>
+<a name="l161"><span class="ln">161  </span></a>        <span class="s0">public </span><span class="s1">CalendarViewHolder(@NonNull View itemView) {</span>
+<a name="l162"><span class="ln">162  </span></a>            <span class="s0">super</span><span class="s1">(itemView);</span>
+<a name="l163"><span class="ln">163  </span></a>            <span class="s1">dayText = itemView.findViewById(R.id.dayText);</span>
+<a name="l164"><span class="ln">164  </span></a>            <span class="s1">highlighterLayout = itemView.findViewById(R.id.highlighterLayout);</span>
+<a name="l165"><span class="ln">165  </span></a>        <span class="s1">}</span>
+<a name="l166"><span class="ln">166  </span></a>    <span class="s1">}</span>
+<a name="l167"><span class="ln">167  </span></a>
+<a name="l168"><span class="ln">168  </span></a>    <span class="s0">static class </span><span class="s1">DetailViewHolder </span><span class="s0">extends </span><span class="s1">RecyclerView.ViewHolder {</span>
+<a name="l169"><span class="ln">169  </span></a>        <span class="s1">TextView detailTitle;</span>
+<a name="l170"><span class="ln">170  </span></a>        <span class="s1">TextView detailContent;</span>
+<a name="l171"><span class="ln">171  </span></a>
+<a name="l172"><span class="ln">172  </span></a>        <span class="s0">public </span><span class="s1">DetailViewHolder(@NonNull View itemView) {</span>
+<a name="l173"><span class="ln">173  </span></a>            <span class="s0">super</span><span class="s1">(itemView);</span>
+<a name="l174"><span class="ln">174  </span></a>            <span class="s1">detailTitle = itemView.findViewById(R.id.detailTitle);</span>
+<a name="l175"><span class="ln">175  </span></a>            <span class="s1">detailContent = itemView.findViewById(R.id.detailContent);</span>
+<a name="l176"><span class="ln">176  </span></a>        <span class="s1">}</span>
+<a name="l177"><span class="ln">177  </span></a>    <span class="s1">}</span>
+<a name="l178"><span class="ln">178  </span></a><span class="s1">}</span>
+<a name="l179"><span class="ln">179  </span></a></pre>
+</body>
+</html>
