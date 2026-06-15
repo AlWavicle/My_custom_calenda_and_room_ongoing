@@ -111,6 +111,14 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="5dp"/>
+    <TextView
+        android:id="@+id/pre_view"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:text="Selected Date Info"
+        android:textAlignment="center"
+        android:textSize="16sp" />
 
     <EditText
         android:id="@+id/schedule_editText"
@@ -119,19 +127,25 @@
         android:layout_margin="10dp"
         android:hint="Enter schedule"
         android:inputType="text" />
-
-    <Button
-        android:id="@+id/save_btn"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="10dp"
-        android:layout_marginEnd="10dp"
-        android:text="Save Schedule" />
+        android:orientation="horizontal"
+        android:gravity="center_horizontal">
+        <Button
+            android:id="@+id/save_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="Save Schedule" />
+        <Button
+            android:id="@+id/remove_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:text="Remove Schedule" />
+    </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/schedule_recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="10dp" />
 </LinearLayout>

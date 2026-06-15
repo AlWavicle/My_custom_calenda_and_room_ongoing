@@ -4,6 +4,8 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -12,13 +14,19 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.my_custom_calenda_and_room.R;
+
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
 
 
 public class MainActivity extends AppCompatActivity {
+
+    private CalendarAdapter adapter;
 
     // native) android.widget.TextView: 텍스트를 화면에 표시하는 안드로이드 기본 뷰 클래스입니다.
     TextView find_yearmonthText;
@@ -29,6 +37,20 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView find_cal_num_recyclerView;
     // native) java.util.ArrayList: 동적 배열을 구현한 자바 표준 컬렉션 프레임워크 클래스입니다.
     ArrayList<Event> eventList;
+
+    TextView find_pre_view;
+
+
+    EditText find_schedule_editText;
+
+    Button find_save_btn;
+
+    Button find_remove_btn;
+
+    int romove;
+
+    int nums;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +65,11 @@ public class MainActivity extends AppCompatActivity {
         ImageButton preBtn = findViewById(R.id.pre_btn);
         ImageButton nextBtn = findViewById(R.id.next_btn);
         find_cal_num_recyclerView = findViewById(R.id.cal_num_recyclerView);
+
+        find_pre_view = findViewById(R.id.pre_view);
+        find_schedule_editText = findViewById(R.id.schedule_editText);
+        find_save_btn = findViewById(R.id.save_btn);
+        find_remove_btn = findViewById(R.id.remove_btn);
 
         make_EventList();// eventlist array 만들고 안에 행사 넣음
 
@@ -69,8 +96,50 @@ public class MainActivity extends AppCompatActivity {
                 setRecyclerView();
             }
         });
-        Log.d("오호리", "Selected Date: " + local_selectedDate+"끝");
-        Toast.makeText(MainActivity.this, "끝났다~~", Toast.LENGTH_LONG).show();
+
+        find_save_btn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view) {
+                String scheduleText = find_schedule_editText.getText().toString();
+                if (!scheduleText.isEmpty() && (adapter.seldate.size() == 2)) {
+                    Event newEvent = new Event(scheduleText, adapter.seldate.get(0), adapter.seldate.get(1));
+
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(MainActivity.this).eventDao().insert(newEvent);
+                        runOnUiThread(() -> {
+                            eventList.add(newEvent);
+                            find_schedule_editText.setText("");
+                            setRecyclerView();
+                        });
+                    });
+                } else if (adapter.seldate.size() < 2) {
+                    Toast.makeText(MainActivity.this, "날짜 범위를 선택해주세요.", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+
+        find_remove_btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (romove >= 0 && romove < eventList.size()) {
+                    Event eventToDelete = eventList.get(romove);
+                    if (eventToDelete != null) {
+                        Executors.newSingleThreadExecutor().execute(() -> {
+                            AppDatabase.getDatabase(MainActivity.this).eventDao().delete(eventToDelete);
+                            runOnUiThread(() -> {
+                                eventList.remove(romove);
+                                romove = -1;
+                                find_pre_view.setText("Selected Date Info");
+                                setRecyclerView();
+                            });
+                        });
+                    } else {
+                        Toast.makeText(MainActivity.this, "삭제할 항목이 없습니다."           , Toast.LENGTH_SHORT).show();
+                    }
+                }
+            }
+        });
 
     }
 
@@ -80,22 +149,22 @@ public class MainActivity extends AppCompatActivity {
     private void make_EventList() {
         eventList = new ArrayList<>();
 
-        
-        // native) android.graphics.Color: 안드로이드에서 제공하는 색상 상수 및 조작 클래스입니다.
-        eventList.add(new Event("공부", 
-                LocalDate.of(LocalDate.now().getYear(), 6, 10),
-                LocalDate.of(LocalDate.now().getYear(), 6, 15),
-                Color.YELLOW));
-        
-        eventList.add(new Event("영상촬영", 
-                LocalDate.of(LocalDate.now().getYear(), 6, 13),
-                LocalDate.of(LocalDate.now().getYear(), 6, 19),
-                Color.CYAN));
-        
-        eventList.add(new Event("복무점검기간", 
-                LocalDate.of(2026, 7, 20),
-                LocalDate.of(LocalDate.now().getYear(), 7, 24),
-                Color.GREEN));
+        // 데이터베이스 인스턴스 준비
+        AppDatabase db = AppDatabase.getDatabase(this);
+
+// 1. 백그라운드 스레드에서 데이터 불러오기 예시
+        Executors.newSingleThreadExecutor().execute(() -> {
+            List<Event> savedEvents = db.eventDao().getAllEvents();
+
+            // UI 변경은 다시 메인 스레드에서 처리해야 합니다!
+            runOnUiThread(() -> {
+                eventList.clear();
+                eventList.addAll(savedEvents);
+                setRecyclerView(); // 달력 갱신
+            });
+        });
+
+
     }
 
     private String localdate_fomat_tostring(LocalDate local_date){
@@ -116,12 +185,34 @@ public class MainActivity extends AppCompatActivity {
         //CalendarAdapter의 객체생성
         //3번째 파라미터는 해당 클래스 객체의 리스너를 final로 따로 저장됨
         // 객체생성시작
-        CalendarAdapter adapter = new CalendarAdapter(Local_Cal_ArrayDayList, eventList, new CalendarAdapter.My_OnItemListener() {
+        adapter = new CalendarAdapter(Local_Cal_ArrayDayList, eventList, new CalendarAdapter.My_OnItemListener() {
 
             //온아이템클릭 함수의 date 파라메터는 안씀
             //리스너 구현
             @Override
-            public void My_OnItemClick(LocalDate wow, ArrayList<Event> events, int position) {
+            public void My_OnItemClick(LocalDate date, ArrayList<Event> events, int position, ArrayList<Integer> eventsindex, int clicknums) {
+                // 1. 이벤트 인덱스 리스트가 유효한지 먼저 확인
+                if (eventsindex != null && !eventsindex.isEmpty()) {
+
+                    int targetIndex = (clicknums-1) % eventsindex.size();
+
+                    // 3. eventsindex에서 실제 eventList의 위치를 꺼냄
+                    romove = eventsindex.get(targetIndex);
+
+                    // 4. romove가 유효한 인덱스(0 이상)인지 확인 후 UI 업데이트
+                    if (romove >= 0 && romove < eventList.size()) {
+                        find_pre_view.setText(eventList.get(romove).getName());
+                    } else {
+                        find_pre_view.setText("No Event");
+                        romove = -1;
+                    }
+                } else {
+                    // 이벤트가 없는 날짜 클릭 시 초기화
+                    find_pre_view.setText("No Event");
+                    romove = -1;
+                }
+
+
                 // 커스텀 어댑터 내의 showDetail 함수를 호출하여 동적으로 뷰를 조작합니다.
                 //1. 리사이클러뷰의 어뎁터함수를 가지고 어뎁터를 뽑아낸다.(이것이 의미하는 바가 뭘까?)
                 // 2. 리사이클러뷰 -> 어뎁터.캘린더어뎁터로 형변환

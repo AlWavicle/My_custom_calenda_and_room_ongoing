@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.my_custom_calenda_1"
+    namespace = "com.example.my_custom_calenda_and_room"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -11,7 +11,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.my_custom_calenda_1"
+        applicationId = "com.example.my_custom_calenda_and_room"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
@@ -43,4 +43,13 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
+
+    // room을 위해 추가
+    val roomVersion = "2.6.1" // 최신 안정화 버전 사용
+
+    implementation("androidx.room:room-runtime:$roomVersion")
+    annotationProcessor("androidx.room:room-compiler:$roomVersion")
+
+    // 선택 사항: LiveData나 테스트를 위한 라이브러리
+    implementation("androidx.room:room-ktx:$roomVersion")
 }

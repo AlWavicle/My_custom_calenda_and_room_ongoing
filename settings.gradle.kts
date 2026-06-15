@@ -22,6 +22,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "My_custom_calenda_1"
+rootProject.name = "My_custom_calenda_and_room"
 include(":app")
  
