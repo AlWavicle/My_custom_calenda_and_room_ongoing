@@ -40,6 +40,8 @@ public class MainActivity extends AppCompatActivity {
 
     TextView find_pre_view;
 
+    ImageButton preBtn;
+    ImageButton nextBtn;
 
     EditText find_schedule_editText;
 
@@ -60,16 +62,8 @@ public class MainActivity extends AppCompatActivity {
         //그다음에 findViewById를 써야 new객체와 연결시켜줄 수 있음(즉, new editText등을 한 객체를 만든 참조값을 리턴해줌)
         setContentView(R.layout.activity_main);
 
-        // native) findViewById: 레이아웃에서 정의된 ID를 통해 뷰 객체를 찾는 함수입니다.
-        find_yearmonthText = findViewById(R.id.yearmonthText);
-        ImageButton preBtn = findViewById(R.id.pre_btn);
-        ImageButton nextBtn = findViewById(R.id.next_btn);
-        find_cal_num_recyclerView = findViewById(R.id.cal_num_recyclerView);
-
-        find_pre_view = findViewById(R.id.pre_view);
-        find_schedule_editText = findViewById(R.id.schedule_editText);
-        find_save_btn = findViewById(R.id.save_btn);
-        find_remove_btn = findViewById(R.id.remove_btn);
+        //View객체 id와 묶기
+        myFindViewByIdSet();
 
         make_EventList();// eventlist array 만들고 안에 행사 넣음
 
@@ -142,6 +136,8 @@ public class MainActivity extends AppCompatActivity {
         });
 
     }
+
+
 
 
 
@@ -268,5 +264,16 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         return local_cal_dayList;
+    }
+
+    private void myFindViewByIdSet() {
+        find_yearmonthText = findViewById(R.id.yearmonthText);
+        find_cal_num_recyclerView = findViewById(R.id.cal_num_recyclerView);
+        find_pre_view = findViewById(R.id.pre_view);
+        preBtn = findViewById(R.id.pre_btn);
+        nextBtn = findViewById(R.id.next_btn);
+        find_schedule_editText = findViewById(R.id.schedule_editText);
+        find_save_btn = findViewById(R.id.save_btn);
+        find_remove_btn = findViewById(R.id.remove_btn);
     }
 }
