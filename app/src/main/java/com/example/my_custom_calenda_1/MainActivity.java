@@ -152,19 +152,25 @@ public class MainActivity extends AppCompatActivity {
         // 데이터베이스 인스턴스 준비
         AppDatabase db = AppDatabase.getDatabase(this);
 
-// 1. 백그라운드 스레드에서 데이터 불러오기 예시
-        Executors.newSingleThreadExecutor().execute(() -> {
-            List<Event> savedEvents = db.eventDao().getAllEvents();
+        // 1. 백그라운드 스레드에서 데이터 불러오기 예시
+        Executors.newSingleThreadExecutor().execute(new Runnable() {
+                    @Override
+                    public void run() {
 
-            // UI 변경은 다시 메인 스레드에서 처리해야 합니다!
-            runOnUiThread(() -> {
-                eventList.clear();
-                eventList.addAll(savedEvents);
-                setRecyclerView(); // 달력 갱신
-            });
-        });
+                    List<Event> savedEvents = db.eventDao().getAllEvents();
 
+                    // UI 변경은 다시 메인 스레드에서 처리해야 합니다!
+                    runOnUiThread(new Runnable(){
 
+                        @Override
+                        public void run() {
+                                eventList.clear();
+                                eventList.addAll(savedEvents);
+                                setRecyclerView(); // 달력 갱신
+                            }
+                        });
+                    }
+                });
     }
 
     private String localdate_fomat_tostring(LocalDate local_date){
