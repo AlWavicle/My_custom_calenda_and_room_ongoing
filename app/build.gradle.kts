@@ -44,6 +44,10 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.ext.junit)
 
+
+    implementation(libs.lifecycle.viewmodel.ktx)
+    implementation(libs.lifecycle.livedata.ktx)
+
     // room을 위해 추가
     val roomVersion = "2.6.1" // 최신 안정화 버전 사용
 
