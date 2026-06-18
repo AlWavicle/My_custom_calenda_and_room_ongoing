@@ -30,12 +30,14 @@ public class QueryFragment extends Fragment {
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Handler handler = new Handler(Looper.getMainLooper());
 
-    // 데이터베이스 이름 정의
-    private static final String DB_NAME = "my_database.db";
+    // 데이터베이스 이름 정의 (Room에서 사용하는 이름과 동일하게 맞춤)
+    private static final String DB_NAME = "calendar_database";
     private SharedViewModel viewModel;
     private EditText queryEditText;
     private Button find_selectquery_btn;
     private Button find_insertquery_btn;
+    private Button prequery_btn;
+    private Button nextquery_btn;
 
     @Nullable
     @Override
@@ -44,9 +46,29 @@ public class QueryFragment extends Fragment {
         queryEditText = view.findViewById(R.id.queryEditText);
         find_insertquery_btn = view.findViewById(R.id.insertquery_btn);
         find_selectquery_btn = view.findViewById(R.id.selectquery_btn);
+        prequery_btn = view.findViewById(R.id.prequery_btn);
+        nextquery_btn = view.findViewById(R.id.nextquery_btn);
 
         // Activity 범위의 SharedViewModel 가져오기 (3개 페이지가 공유함)
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
+
+        // 이전 쿼리 버튼 클릭
+        prequery_btn.setOnClickListener(v -> {
+            String preQuery = viewModel.getPreviousQuery();
+            if (preQuery != null) {
+                queryEditText.setText(preQuery);
+            } else {
+                Toast.makeText(requireContext(), "이전 기록이 없습니다.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // 다음 쿼리 버튼 클릭
+        nextquery_btn.setOnClickListener(v -> {
+            String nextQuery = viewModel.getNextQuery();
+            if (nextQuery != null) {
+                queryEditText.setText(nextQuery);
+            }
+        });
 
         // ViewModel에 저장된 값을 가져와서 EditText에 복원 (화면 스와이프 복귀 시)
         viewModel.getQueryText().observe(getViewLifecycleOwner(), text -> {
@@ -64,6 +86,9 @@ public class QueryFragment extends Fragment {
                 String query = queryEditText.getText().toString();
                 final String rawInsertQuery = query;
 
+                // 쿼리 기록에 추가
+                viewModel.addQueryToHistory(rawInsertQuery);
+
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -77,10 +102,17 @@ public class QueryFragment extends Fragment {
                             handler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toast.makeText(requireContext(), "데이터 삽입(INSERT) 완료!", Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(requireContext(), "쿼리 실행 완료!", Toast.LENGTH_SHORT).show();
+                                    // 🚀 추가: 결과 페이지에 성공 메시지 전달
+                                    viewModel.setResultText("쿼리가 성공적으로 실행되었습니다.\n실행 쿼리: " + rawInsertQuery);
                                 }
                             });
                         } catch (Exception e) {
+                            final String errorMessage = e.getMessage();
+                            handler.post(() -> {
+                                viewModel.setResultText("에러 발생: " + errorMessage);
+                                Toast.makeText(requireContext(), "쿼리 실패!", Toast.LENGTH_SHORT).show();
+                            });
                             e.printStackTrace();
                         } finally {
                             if (db != null && db.isOpen()) db.close();
@@ -97,6 +129,9 @@ public class QueryFragment extends Fragment {
                 String query = queryEditText.getText().toString();
                 final String rawSelectQuery = query;
 
+                // 쿼리 기록에 추가
+                viewModel.addQueryToHistory(rawSelectQuery);
+
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
@@ -108,12 +143,18 @@ public class QueryFragment extends Fragment {
 
                             final StringBuilder resultBuilder = new StringBuilder();
                             if (cursor != null) {
+                                // 모든 컬럼 이름을 가져와서 상단에 표시
+                                String[] columnNames = cursor.getColumnNames();
+                                for (String col : columnNames) {
+                                    resultBuilder.append("[").append(col).append("] ");
+                                }
+                                resultBuilder.append("\n------------------------------\n");
+
                                 while (cursor.moveToNext()) {
-                                    int nameIndex = cursor.getColumnIndex("name"); // 필요에 따라 컬럼명 수정
-                                    if (nameIndex != -1) {
-                                        String name = cursor.getString(nameIndex);
-                                        resultBuilder.append(name).append("\n"); // 줄바꿈으로 유저 구분
+                                    for (int i = 0; i < cursor.getColumnCount(); i++) {
+                                        resultBuilder.append(cursor.getString(i)).append(" | ");
                                     }
+                                    resultBuilder.append("\n");
                                 }
                             }
 
@@ -129,22 +170,20 @@ public class QueryFragment extends Fragment {
                             handler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    // ==========================================
-                                    // 🚀 [수정된 부분] 뷰페이저용 데이터 전달 (Fragment Result API)
-                                    // ==========================================
+                                    // 🚀 [수정] ViewModel에 결과 저장 (ResultFragment가 실시간으로 감지)
+                                    viewModel.setResultText(finalResult);
 
-                                    // 1. 택배 상자(Bundle) 생성 및 데이터 넣기
+                                    // 기존 방식: Fragment Result API로 전달
                                     Bundle bundle = new Bundle();
                                     bundle.putString("QUERY_DATA", finalResult);
-
-                                    // 2. 부모 관리자를 통해 "DATA_KEY"라는 주소로 상자 던지기
                                     getParentFragmentManager().setFragmentResult("DATA_KEY", bundle);
-
-                                    // 3. (선택사항) 조회가 끝났다는 알림 띄우기
-                                    // Toast.makeText(requireContext(), "조회 완료! 옆 화면에서 확인하세요.", Toast.LENGTH_SHORT).show();
                                 }
                             });
                         } catch (Exception e) {
+                            final String errorMessage = e.getMessage();
+                            handler.post(() -> {
+                                viewModel.setResultText("조회 에러: " + errorMessage);
+                            });
                             e.printStackTrace();
                         } finally {
                             if (cursor != null && !cursor.isClosed()) cursor.close();

@@ -22,15 +22,35 @@
         android:orientation="horizontal">
         <Button
             android:id="@+id/selectquery_btn"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="selectquery_btn" />
 
         <Button
             android:id="@+id/insertquery_btn"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="insertquery_btn" />
     </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button
+                android:id="@+id/prequery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="prequery_btn" />
+
+            <Button
+                android:id="@+id/nextquery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="nextquery_btn" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
