@@ -49,6 +49,8 @@ public class QueryFragment extends Fragment {
     private Button prequery_btn;
     private Button nextquery_btn;
 
+    private Button equel_btn, open_parenthesis_btn, close_parenthesis_btn, Percent_btn, Asterisk_btn, Apostrophe_btn;
+
     private TextView find_columview;
 
     @Nullable
@@ -61,6 +63,20 @@ public class QueryFragment extends Fragment {
         prequery_btn = view.findViewById(R.id.prequery_btn);
         nextquery_btn = view.findViewById(R.id.nextquery_btn);
         find_columview = view.findViewById(R.id.columview);
+
+        equel_btn = view.findViewById(R.id.equel_btn);
+        open_parenthesis_btn = view.findViewById(R.id.open_parenthesis_btn);
+        close_parenthesis_btn = view.findViewById(R.id.close_parenthesis_btn);
+        Percent_btn = view.findViewById(R.id.Percent_btn);
+        Asterisk_btn = view.findViewById(R.id.Asterisk_btn);
+        Apostrophe_btn = view.findViewById(R.id.Apostrophe_btn);
+
+        setupSymbolButton(equel_btn, "=");
+        setupSymbolButton(open_parenthesis_btn, "(");
+        setupSymbolButton(close_parenthesis_btn, ")");
+        setupSymbolButton(Percent_btn, "%");
+        setupSymbolButton(Asterisk_btn, "*");
+        setupSymbolButton(Apostrophe_btn, "'");
 
         // Activity 범위의 SharedViewModel 가져오기 (3개 페이지가 공유함)
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -291,6 +307,17 @@ public class QueryFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void setupSymbolButton(Button button, String symbol) {
+        if (button != null) {
+            button.setOnClickListener(v -> {
+                int start = Math.max(queryEditText.getSelectionStart(), 0);
+                int end = Math.max(queryEditText.getSelectionEnd(), 0);
+                queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                        symbol, 0, symbol.length());
+            });
+        }
     }
 
     @Override
