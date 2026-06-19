@@ -12,7 +12,7 @@
             android:id="@+id/queryEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="쿼리문을 입력하세요"
+            android:text="select * from events"
             android:inputType="textMultiLine"
             android:minLines="10"
             android:gravity="top"/>
@@ -52,5 +52,14 @@
                 android:layout_weight="1"
                 android:text="nextquery_btn" />
         </LinearLayout>
+        <TextView
+            android:id="@+id/columview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Columns"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textIsSelectable="true"/>
+
     </LinearLayout>
 </ScrollView>

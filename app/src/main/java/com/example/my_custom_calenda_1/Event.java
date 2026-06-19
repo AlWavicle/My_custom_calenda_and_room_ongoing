@@ -51,18 +51,25 @@ public class Event {
         return name;
     }
 
+    public void setName(String name) { this.name = name; }
+
     public LocalDate getStartDate() {
         return startDate;
     }
+
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
     public LocalDate getEndDate() {
         return endDate;
     }
 
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+
     public int getColor() {
         return color;
     }
 
+    public void setColor(int color) { this.color = color; }
 
 
     @Override
@@ -70,13 +77,31 @@ public class Event {
         return "Event{" +
                 "이름='" + name + '\'' +
                 ", 시작일=" + startDate +
+                ", 종료일=" + endDate +
                 '}';
     }
+
     /**
-     * native) LocalDate#isEqual, isAfter, isBefore: 
-     * 특정 날짜가 일정 기간 내에 포함되는지 확인하기 위해 사용되는 네이티브 비교 함수들입니다.
+     * 특정 날짜가 일정 범위에 포함되는지 확인합니다.
+     * 시작일이나 종료일 중 하나만 있어도 해당 날짜에 표시되도록 개선되었습니다.
      */
     public boolean isWithin(LocalDate date) {
+        if (date == null) return false;
+
+        // 시작일과 종료일이 모두 없는 경우 표시 불가
+        if (startDate == null && endDate == null) return false;
+
+        // 시작일만 있는 경우: 시작일과 일치하면 표시
+        if (startDate != null && endDate == null) {
+            return date.isEqual(startDate);
+        }
+
+        // 종료일만 있는 경우: 종료일과 일치하면 표시
+        if (startDate == null && endDate != null) {
+            return date.isEqual(endDate);
+        }
+
+        // 시작일과 종료일이 모두 있는 경우: 범위 내에 있는지 확인 (시작일 <= date <= 종료일)
         return (date.isEqual(startDate) || date.isAfter(startDate)) &&
                (date.isEqual(endDate) || date.isBefore(endDate));
     }

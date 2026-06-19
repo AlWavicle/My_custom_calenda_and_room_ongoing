@@ -7,11 +7,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -21,6 +23,9 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.my_custom_calenda_and_room.R;
 
+import java.lang.reflect.Array;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,12 +37,19 @@ public class QueryFragment extends Fragment {
 
     // 데이터베이스 이름 정의 (Room에서 사용하는 이름과 동일하게 맞춤)
     private static final String DB_NAME = "calendar_database";
+
+    public static ArrayList<Object> sendArrayListResult = new ArrayList<>();
+
+    public static ArrayList<String> stringEvent = new ArrayList<String>();
+
     private SharedViewModel viewModel;
     private EditText queryEditText;
     private Button find_selectquery_btn;
     private Button find_insertquery_btn;
     private Button prequery_btn;
     private Button nextquery_btn;
+
+    private TextView find_columview;
 
     @Nullable
     @Override
@@ -48,6 +60,7 @@ public class QueryFragment extends Fragment {
         find_selectquery_btn = view.findViewById(R.id.selectquery_btn);
         prequery_btn = view.findViewById(R.id.prequery_btn);
         nextquery_btn = view.findViewById(R.id.nextquery_btn);
+        find_columview = view.findViewById(R.id.columview);
 
         // Activity 범위의 SharedViewModel 가져오기 (3개 페이지가 공유함)
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -144,18 +157,32 @@ public class QueryFragment extends Fragment {
                             final StringBuilder resultBuilder = new StringBuilder();
                             if (cursor != null) {
                                 // 모든 컬럼 이름을 가져와서 상단에 표시
+                                sendArrayListResult.clear();//이전 내용 지우기
+                                stringEvent.clear();
                                 String[] columnNames = cursor.getColumnNames();
                                 for (String col : columnNames) {
                                     resultBuilder.append("[").append(col).append("] ");
+                                    stringEvent.add(col);
                                 }
+                                find_columview.setText(stringEvent.toString());
+                                sendArrayListResult.add(new ArrayList<>(stringEvent));
+                                Log.d("오호리", sendArrayListResult.toString());
                                 resultBuilder.append("\n------------------------------\n");
 
                                 while (cursor.moveToNext()) {
+                                    stringEvent.clear();
                                     for (int i = 0; i < cursor.getColumnCount(); i++) {
                                         resultBuilder.append(cursor.getString(i)).append(" | ");
+                                        stringEvent.add(cursor.getString(i));
                                     }
                                     resultBuilder.append("\n");
+                                    sendArrayListResult.add(new ArrayList<>(stringEvent));
                                 }
+                                Log.d("오호리", sendArrayListResult.toString());
+
+
+
+
                             }
 
                             // 최종 결과 문자열 생성
@@ -188,6 +215,75 @@ public class QueryFragment extends Fragment {
                         } finally {
                             if (cursor != null && !cursor.isClosed()) cursor.close();
                             if (db != null && db.isOpen()) db.close();
+
+
+                            //____
+                            if (sendArrayListResult != null && !sendArrayListResult.isEmpty()) {
+                                int i = 0;
+                                int idCol = -1;
+                                int nameCol = -1;
+                                int startDateCol = -1;
+                                int endDateCol = -1;
+                                int colorCol = -1;
+                                int startTimeCol = -1;
+                                int endTimeCol = -1;
+                                int memoCol = -1;
+                                int isAllDayCol = -1;
+                                for (String col : (ArrayList<String>)sendArrayListResult.get(0)) {
+                                    switch (col){
+                                        case "id":
+                                            idCol=i;
+                                            break;
+                                        case "name":
+                                            nameCol=i;
+                                            break;
+                                        case "startDate":
+                                            startDateCol=i;
+                                            break;
+                                        case "endDate":
+                                            endDateCol=i;
+                                            break;
+                                        case "color":
+                                            colorCol=i;
+                                            break;
+                                        case "startTime":
+                                            startTimeCol=i;
+                                            break;
+                                        case "endTime":
+                                            endTimeCol=i;
+                                            break;
+                                        case "memo":
+                                            memoCol=i;
+                                            break;
+                                        case "isAllDay":
+                                            isAllDayCol=i;
+                                            break;
+                                    }
+                                    i++;
+                                }
+
+                                CalendarAdapter.sSCModel = new ArrayList<SelectSendCalenderModel>();
+                                for (int j = 1; j < sendArrayListResult.size(); j++) {
+                                    ArrayList<String> selevent = (ArrayList<String>)sendArrayListResult.get(j);
+                                    SelectSendCalenderModel model = new SelectSendCalenderModel.Builder()
+                                            .setId(idCol != -1 ? selevent.get(idCol) : null)
+                                            .setName(nameCol != -1 ? selevent.get(nameCol) : null)
+                                            .setStartDate(startDateCol != -1 && selevent.get(startDateCol) != null ? LocalDate.parse(selevent.get(startDateCol)) : (LocalDate)null)
+                                            .setEndDate(endDateCol != -1 && selevent.get(endDateCol) != null ? LocalDate.parse(selevent.get(endDateCol)) : (LocalDate)null)
+                                            .setColor(colorCol != -1 && selevent.get(colorCol) != null ? Integer.parseInt(selevent.get(colorCol)) : 0)
+                                            .setStartTime(startTimeCol != -1 ? selevent.get(startTimeCol) : null)
+                                            .setEndTime(endTimeCol != -1 ? selevent.get(endTimeCol) : null)
+                                            .setMemo(memoCol != -1 ? selevent.get(memoCol) : null)
+                                            .setIsAllDay(isAllDayCol != -1 && selevent.get(isAllDayCol) != null ? Boolean.parseBoolean(selevent.get(isAllDayCol)) : false)
+                                            .build();
+                                    CalendarAdapter.sSCModel.add(model);
+                                }
+                            }
+                            //__
+
+
+
+
                         }
                     }
                 });

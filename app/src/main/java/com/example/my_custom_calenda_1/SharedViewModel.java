@@ -8,7 +8,7 @@ import java.util.List;
 
 public class SharedViewModel extends ViewModel {
     // 쿼리문 작성 페이지의 데이터를 보관
-    private final MutableLiveData<String> queryText = new MutableLiveData<>("");
+    private final MutableLiveData<String> queryText = new MutableLiveData<>("select * from events");
     // 결과 페이지의 데이터를 보관
     private final MutableLiveData<String> resultText = new MutableLiveData<>("");
 

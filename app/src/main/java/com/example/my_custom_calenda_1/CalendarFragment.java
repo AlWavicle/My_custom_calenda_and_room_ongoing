@@ -205,7 +205,7 @@ public class CalendarFragment extends Fragment {
             //온아이템클릭 함수의 date 파라메터는 안씀
             //리스너 구현
             @Override
-            public void My_OnItemClick(LocalDate date, ArrayList<Event> events, int position, ArrayList<Integer> eventsindex, int clicknums) {
+            public void My_OnItemClick(LocalDate date, ArrayList<SelectSendCalenderModel> events, int position, ArrayList<Integer> eventsindex, int clicknums) {
                 // 1. 이벤트 인덱스 리스트가 유효한지 먼저 확인
                 if (eventsindex != null && !eventsindex.isEmpty()) {
 
