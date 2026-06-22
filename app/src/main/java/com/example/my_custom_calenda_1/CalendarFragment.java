@@ -98,19 +98,28 @@ public class CalendarFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 String scheduleText = find_schedule_editText.getText().toString();
-                if (!scheduleText.isEmpty() && (adapter.seldate.size() == 2)) {
-                    Event newEvent = new Event(scheduleText, adapter.seldate.get(0), adapter.seldate.get(1));
+                // 🚀 [수정] 날짜가 2개가 아니어도 (하나만 있거나 없어도) 텍스트가 있으면 저장 가능하게 변경
+                if (!scheduleText.isEmpty()) {
+                    LocalDate startDate = (adapter.seldate.size() > 0) ? adapter.seldate.get(0) : null;
+                    LocalDate endDate = (adapter.seldate.size() > 1) ? adapter.seldate.get(1) : null;
+                    
+                    Event newEvent = new Event(scheduleText, startDate, endDate);
 
                     Executors.newSingleThreadExecutor().execute(() -> {
                         AppDatabase.getDatabase(requireContext()).eventDao().insert(newEvent);
                         requireActivity().runOnUiThread(() -> {
                             eventList.add(newEvent);
                             find_schedule_editText.setText("");
+                            
+                            // 저장 후 선택 해제 (원할 경우 주석 해제)
+                            // adapter.seldate.clear(); 
+                            
                             setRecyclerView();
+                            Toast.makeText(requireContext(), "일정이 추가되었습니다.", Toast.LENGTH_SHORT).show();
                         });
                     });
-                } else if (adapter.seldate.size() < 2) {
-                    Toast.makeText(requireContext(), "날짜 범위를 선택해주세요.", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(requireContext(), "일정 내용을 입력해주세요.", Toast.LENGTH_SHORT).show();
                 }
             }
         });

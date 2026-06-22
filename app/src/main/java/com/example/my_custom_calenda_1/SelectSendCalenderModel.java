@@ -18,6 +18,9 @@ public class SelectSendCalenderModel {
     private String endTime;
     private String memo;
     private boolean isAllDay;
+    private String category1;
+    private String category2;
+    private String createdAt;
 
     // 생성자를 private으로 만들어서 직접 호출을 막음
     private SelectSendCalenderModel(Builder builder) {
@@ -30,6 +33,9 @@ public class SelectSendCalenderModel {
         this.endTime = builder.endTime;
         this.memo = builder.memo;
         this.isAllDay = builder.isAllDay;
+        this.category1 = builder.category1;
+        this.category2 = builder.category2;
+        this.createdAt = builder.createdAt;
     }
 
     public static class Builder {
@@ -42,6 +48,9 @@ public class SelectSendCalenderModel {
         private String endTime;
         private String memo;
         private boolean isAllDay;
+        private String category1;
+        private String category2;
+        private String createdAt;
 
         //스트링을 로컬데이트로 바꾸기 위한 포맷 생성
         private static DateTimeFormatter formatter = new DateTimeFormatterBuilder()
@@ -77,6 +86,8 @@ public class SelectSendCalenderModel {
         public Builder setStartDate(String startDate) {
             if (startDate != null && !startDate.trim().isEmpty()) {
                 this.startDate = LocalDate.parse(startDate.trim(), formatter);
+            }else {
+                this.startDate=null;
             }
             return this;
         }
@@ -89,6 +100,8 @@ public class SelectSendCalenderModel {
         public Builder setEndDate(String endDate) {
             if (endDate != null && !endDate.trim().isEmpty()) {
                 this.endDate = LocalDate.parse(endDate.trim(), formatter);
+            }else {
+                this.endDate=null;
             }
             return this;
         }
@@ -120,6 +133,21 @@ public class SelectSendCalenderModel {
 
         public Builder setIsAllDay(boolean isAllDay) {
             this.isAllDay = isAllDay;
+            return this;
+        }
+
+        public Builder setCategory1(String category1) {
+            this.category1 = category1;
+            return this;
+        }
+
+        public Builder setCategory2(String category2) {
+            this.category2 = category2;
+            return this;
+        }
+
+        public Builder setCreatedAt(String createdAt) {
+            this.createdAt = createdAt;
             return this;
         }
 
@@ -160,6 +188,15 @@ public class SelectSendCalenderModel {
     public boolean isAllDay() { return isAllDay; }
     public void setAllDay(boolean allDay) { isAllDay = allDay; }
 
+    public String getCategory1() { return category1; }
+    public void setCategory1(String category1) { this.category1 = category1; }
+
+    public String getCategory2() { return category2; }
+    public void setCategory2(String category2) { this.category2 = category2; }
+
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+
     @Override
     public String toString() {
         return "SelectSendCalenderModel{" +
@@ -172,6 +209,9 @@ public class SelectSendCalenderModel {
                 ", endTime='" + endTime + '\'' +
                 ", memo='" + memo + '\'' +
                 ", isAllDay=" + isAllDay +
+                ", category1='" + category1 + '\'' +
+                ", category2='" + category2 + '\'' +
+                ", createdAt='" + createdAt + '\'' +
                 '}';
     }
 

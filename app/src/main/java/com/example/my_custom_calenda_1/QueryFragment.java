@@ -1,6 +1,8 @@
 package com.example.my_custom_calenda_1;
 
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -8,9 +10,11 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -23,17 +27,15 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.my_custom_calenda_and_room.R;
 
-import java.lang.reflect.Array;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class QueryFragment extends Fragment {
 
-    // 백그라운드 스레드 및 UI 업데이트용 핸들러
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Handler handler = new Handler(Looper.getMainLooper());
+
 
     // 데이터베이스 이름 정의 (Room에서 사용하는 이름과 동일하게 맞춤)
     private static final String DB_NAME = "calendar_database";
@@ -43,13 +45,28 @@ public class QueryFragment extends Fragment {
     public static ArrayList<String> stringEvent = new ArrayList<String>();
 
     private SharedViewModel viewModel;
-    private EditText queryEditText;
-    private Button find_selectquery_btn;
-    private Button find_insertquery_btn;
-    private Button prequery_btn;
-    private Button nextquery_btn;
+    private EditText queryEditText, dateconversionEditText;
+    private Button find_selectquery_btn, find_insertquery_btn, prequery_btn, nextquery_btn, convertDateBtn;
+    
+    // 날짜 변환용 포맷터
+    // 2자리 년도(yy)와 4자리 년도(yyyy)를 모두 지원하도록 개선
+    private static final DateTimeFormatter dateformatter = new DateTimeFormatterBuilder()
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy-M-d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy-MM-dd"))   // 26-11-01 형식 지원
+            .appendOptional(DateTimeFormatter.ofPattern("yy-M-d"))     // 26-11-1 형식 지원
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy/M/d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy/M/d"))     // 26/11/1 형식 지원
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy년MM월dd일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy년M월d일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy년MM월dd일")) // 26년11월01일 형식 지원
+            .appendOptional(DateTimeFormatter.ofPattern("yy년M월d일"))   // 26년11월1일 형식 지원
+            .appendOptional(DateTimeFormatter.ofPattern("yyyyMMdd"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyMMdd"))
+            .toFormatter();
 
     private Button equel_btn, open_parenthesis_btn, close_parenthesis_btn, Percent_btn, Asterisk_btn, Apostrophe_btn;
+    private Button Lessthansign_btn, greaterthan_btn, underscore_btn, plus_btn, minus_btn, slesh_btn, past_btn;
 
     private TextView find_columview;
 
@@ -63,6 +80,9 @@ public class QueryFragment extends Fragment {
         prequery_btn = view.findViewById(R.id.prequery_btn);
         nextquery_btn = view.findViewById(R.id.nextquery_btn);
         find_columview = view.findViewById(R.id.columview);
+        
+        dateconversionEditText = view.findViewById(R.id.dateconversionEditText);
+        convertDateBtn = view.findViewById(R.id.convertDateBtn);
 
         equel_btn = view.findViewById(R.id.equel_btn);
         open_parenthesis_btn = view.findViewById(R.id.open_parenthesis_btn);
@@ -71,12 +91,93 @@ public class QueryFragment extends Fragment {
         Asterisk_btn = view.findViewById(R.id.Asterisk_btn);
         Apostrophe_btn = view.findViewById(R.id.Apostrophe_btn);
 
+        Lessthansign_btn = view.findViewById(R.id.Lessthansign);
+        greaterthan_btn = view.findViewById(R.id.openparenthesis_btn); // XML ID가 openparenthesis_btn임
+        underscore_btn = view.findViewById(R.id.underscore_btn);
+        plus_btn = view.findViewById(R.id.plus_btn);
+        minus_btn = view.findViewById(R.id.minus_btn);
+        slesh_btn = view.findViewById(R.id.slesh_btn);
+        past_btn = view.findViewById(R.id.past_btn);
+
         setupSymbolButton(equel_btn, "=");
         setupSymbolButton(open_parenthesis_btn, "(");
         setupSymbolButton(close_parenthesis_btn, ")");
         setupSymbolButton(Percent_btn, "%");
         setupSymbolButton(Asterisk_btn, "*");
         setupSymbolButton(Apostrophe_btn, "'");
+
+        setupSymbolButton(Lessthansign_btn, "<");
+        setupSymbolButton(greaterthan_btn, ">");
+        setupSymbolButton(underscore_btn, "_");
+        setupSymbolButton(plus_btn, "+");
+        setupSymbolButton(minus_btn, "-");
+        setupSymbolButton(slesh_btn, "/");
+
+        // 1. 날짜 변환 에딧텍스트 엔터 처리
+        if (dateconversionEditText != null) {
+            // 엔터 시 줄바꿈 방지를 위해 싱글라인 설정 및 키보드 엔터 액션 설정
+            dateconversionEditText.setSingleLine(true);
+            dateconversionEditText.setImeOptions(EditorInfo.IME_ACTION_DONE);
+
+            dateconversionEditText.setOnKeyListener((v, keyCode, event) -> {
+                // 엔터 키를 눌렀을 때 실행 (ACTION_DOWN)
+                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                    String input = dateconversionEditText.getText().toString().trim();
+                    
+                    // "202 6 년 5월 6 일 " 같이 띄어쓰기가 섞인 경우를 대비해 
+                    // 숫자/년/월/일/기호 외의 모든 공백을 제거
+                    String cleanInput = input.replaceAll(" ", "");
+                    
+                    try {
+                        // 텍스트를 LocalDate로 변환 시도
+                        LocalDate parsedDate = LocalDate.parse(cleanInput, dateformatter);
+                        // 다시 표준 포맷(yyyy-MM-dd)의 문자열로 변환
+                        String result = parsedDate.toString();
+                        // 에딧텍스트 업데이트
+                        dateconversionEditText.setText(result);
+                        dateconversionEditText.setSelection(result.length()); // 커서를 끝으로
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "날짜 형식이 올바르지 않습니다.", Toast.LENGTH_SHORT).show();
+                    }
+                    return true; // 이벤트 소비 (줄바꿈 방지)
+                }
+                return false;
+            });
+        }
+
+        // 2. 컨버트 버튼 클릭 처리 (현재 커서 위치에 붙여넣기)
+        if (convertDateBtn != null) {
+            convertDateBtn.setOnClickListener(v -> {
+                String dateStr = dateconversionEditText.getText().toString().trim();
+                if (!dateStr.isEmpty()) {
+                    int start = Math.max(queryEditText.getSelectionStart(), 0);
+                    int end = Math.max(queryEditText.getSelectionEnd(), 0);
+                    queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                            dateStr, 0, dateStr.length());
+                }
+            });
+        }
+
+        // 붙여넣기(Paste) 버튼 기능 구현
+        if (past_btn != null) {
+            past_btn.setOnClickListener(v -> {
+                ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null && clipboard.hasPrimaryClip()) {
+                    ClipData clip = clipboard.getPrimaryClip();
+                    if (clip != null && clip.getItemCount() > 0) {
+                        CharSequence pasteData = clip.getItemAt(0).getText();
+                        if (pasteData != null) {
+                            int start = Math.max(queryEditText.getSelectionStart(), 0);
+                            int end = Math.max(queryEditText.getSelectionEnd(), 0);
+                            queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                                    pasteData, 0, pasteData.length());
+                        }
+                    }
+                } else {
+                    Toast.makeText(requireContext(), "클립보드가 비어있습니다.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
 
         // Activity 범위의 SharedViewModel 가져오기 (3개 페이지가 공유함)
         viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
@@ -90,6 +191,7 @@ public class QueryFragment extends Fragment {
                 Toast.makeText(requireContext(), "이전 기록이 없습니다.", Toast.LENGTH_SHORT).show();
             }
         });
+
 
         // 다음 쿼리 버튼 클릭
         nextquery_btn.setOnClickListener(v -> {
@@ -118,33 +220,48 @@ public class QueryFragment extends Fragment {
                 // 쿼리 기록에 추가
                 viewModel.addQueryToHistory(rawInsertQuery);
 
-                executor.execute(new Runnable() {
+                viewModel.executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        SQLiteDatabase db = null;
+
+
                         try {
-                            db = requireContext().openOrCreateDatabase(DB_NAME, Context.MODE_PRIVATE, null);
+                            // 🚀 [수정] ViewModel의 헬퍼 메서드 사용 (이미 열려있으면 그대로 사용)
+                            viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
 
-                            // 결과 테이블이 없는 형태이므로 execSQL 사용
-                            db.execSQL(rawInsertQuery);
+                            // 1. 트랜잭션 시작
+                            viewModel.mDb.execSQL("BEGIN TRANSACTION;");
 
-                            handler.post(new Runnable() {
+                            // 쿼리 실행
+                            viewModel.mDb.execSQL(rawInsertQuery);
+
+                            // 🚀 [수정] 자동 COMMIT 제거 (ResultFragment에서 수동 커밋하도록 유도)
+                            // viewModel.mDb.execSQL("COMMIT;");
+
+                            viewModel.handler.post(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Toast.makeText(requireContext(), "쿼리 실행 완료!", Toast.LENGTH_SHORT).show();
-                                    // 🚀 추가: 결과 페이지에 성공 메시지 전달
-                                    viewModel.setResultText("쿼리가 성공적으로 실행되었습니다.\n실행 쿼리: " + rawInsertQuery);
+                                    Toast.makeText(requireContext(), "쿼리 실행 완료! 결과 페이지에서 [커밋]을 눌러야 저장됩니다.", Toast.LENGTH_SHORT).show();
+                                    // 🚀 [수정] ResultFragment로 데이터 전달 (Bundle에 쿼리문 담기)
+                                    viewModel.setResultText("쿼리가 성공적으로 실행되었습니다(트랜잭션 대기 중).\n실행 쿼리: " + rawInsertQuery);
+
+                                    Bundle bundle = new Bundle();
+                                    bundle.putString("QUERY_DATA", rawInsertQuery);
+                                    getParentFragmentManager().setFragmentResult("DATA_KEY", bundle);
+
+                                    getParentFragmentManager().setFragmentResult("QUERY_EXECUTED", new Bundle());
                                 }
                             });
                         } catch (Exception e) {
                             final String errorMessage = e.getMessage();
-                            handler.post(() -> {
+                            viewModel.handler.post(() -> {
                                 viewModel.setResultText("에러 발생: " + errorMessage);
                                 Toast.makeText(requireContext(), "쿼리 실패!", Toast.LENGTH_SHORT).show();
                             });
                             e.printStackTrace();
                         } finally {
-                            if (db != null && db.isOpen()) db.close();
+                            // 🚀 [수정] 여기서 DB를 닫지 않습니다! (ResultFragment에서 커밋/롤백 후 닫아야 함)
+                            // if (viewModel.mDb != null && viewModel.mDb.isOpen()) viewModel.mDb.close();
                         }
                     }
                 });
@@ -161,14 +278,14 @@ public class QueryFragment extends Fragment {
                 // 쿼리 기록에 추가
                 viewModel.addQueryToHistory(rawSelectQuery);
 
-                executor.execute(new Runnable() {
+                viewModel.executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        SQLiteDatabase db = null;
                         Cursor cursor = null;
                         try {
-                            db = requireContext().openOrCreateDatabase(DB_NAME, Context.MODE_PRIVATE, null);
-                            cursor = db.rawQuery(rawSelectQuery, null);
+                            // 🚀 [수정] ViewModel의 헬퍼 메서드 사용
+                            viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
+                            cursor = viewModel.mDb.rawQuery(rawSelectQuery, null);
 
                             final StringBuilder resultBuilder = new StringBuilder();
                             if (cursor != null) {
@@ -177,10 +294,11 @@ public class QueryFragment extends Fragment {
                                 stringEvent.clear();
                                 String[] columnNames = cursor.getColumnNames();
                                 for (String col : columnNames) {
-                                    resultBuilder.append("[").append(col).append("] ");
+                                    resultBuilder.append("[     ").append(col).append("     ] ");
                                     stringEvent.add(col);
                                 }
-                                find_columview.setText(stringEvent.toString());
+
+
                                 sendArrayListResult.add(new ArrayList<>(stringEvent));
                                 Log.d("오호리", sendArrayListResult.toString());
                                 resultBuilder.append("\n------------------------------\n");
@@ -210,12 +328,12 @@ public class QueryFragment extends Fragment {
                             // 안드로이드에서 익명 클래스 내부에 변수를 전달하기 위해 final 선언
                             final String finalResult = tempResult;
 
-                            handler.post(new Runnable() {
+                            viewModel.handler.post(new Runnable() {
                                 @Override
                                 public void run() {
                                     // 🚀 [수정] ViewModel에 결과 저장 (ResultFragment가 실시간으로 감지)
+                                    find_columview.setText(sendArrayListResult.get(0).toString());
                                     viewModel.setResultText(finalResult);
-
                                     // 기존 방식: Fragment Result API로 전달
                                     Bundle bundle = new Bundle();
                                     bundle.putString("QUERY_DATA", finalResult);
@@ -224,13 +342,22 @@ public class QueryFragment extends Fragment {
                             });
                         } catch (Exception e) {
                             final String errorMessage = e.getMessage();
-                            handler.post(() -> {
+                            viewModel.handler.post(() -> {
                                 viewModel.setResultText("조회 에러: " + errorMessage);
                             });
                             e.printStackTrace();
                         } finally {
+                            // 1. 커서는 무조건 닫아줍니다. (메모리 누수 방지)
                             if (cursor != null && !cursor.isClosed()) cursor.close();
-                            if (db != null && db.isOpen()) db.close();
+                            // 2. DB가 열려있고, 트랜잭션 중이 아닐 때만 닫아줍니다!
+                            if (viewModel.mDb != null && viewModel.mDb.isOpen()) {
+                                if (!viewModel.mDb.inTransaction()) { // 🚀 현재 트랜잭션 중이 아니라면? (자물쇠가 풀려있다면)
+                                    viewModel.mDb.close();
+                                    viewModel.mDb = null;
+                                } else {
+                                    Log.d("DB_TEST", "현재 트랜잭션 대기 중이므로 DB를 닫지 않고 유지합니다.");
+                                }
+                            }
 
 
                             //____
@@ -245,6 +372,9 @@ public class QueryFragment extends Fragment {
                                 int endTimeCol = -1;
                                 int memoCol = -1;
                                 int isAllDayCol = -1;
+                                int category1Col = -1;
+                                int category2Col = -1;
+                                int createdAtCol = -1;
                                 for (String col : (ArrayList<String>)sendArrayListResult.get(0)) {
                                     switch (col){
                                         case "id":
@@ -274,6 +404,15 @@ public class QueryFragment extends Fragment {
                                         case "isAllDay":
                                             isAllDayCol=i;
                                             break;
+                                        case "category1":
+                                            category1Col=i;
+                                            break;
+                                        case "category2":
+                                            category2Col=i;
+                                            break;
+                                        case "createdAt":
+                                            createdAtCol=i;
+                                            break;
                                     }
                                     i++;
                                 }
@@ -291,6 +430,9 @@ public class QueryFragment extends Fragment {
                                             .setEndTime(endTimeCol != -1 ? selevent.get(endTimeCol) : null)
                                             .setMemo(memoCol != -1 ? selevent.get(memoCol) : null)
                                             .setIsAllDay(isAllDayCol != -1 && selevent.get(isAllDayCol) != null ? Boolean.parseBoolean(selevent.get(isAllDayCol)) : false)
+                                            .setCategory1(category1Col != -1 ? selevent.get(category1Col) : null)
+                                            .setCategory2(category2Col != -1 ? selevent.get(category2Col) : null)
+                                            .setCreatedAt(createdAtCol != -1 ? selevent.get(createdAtCol) : null)
                                             .build();
                                     CalendarAdapter.sSCModel.add(model);
                                 }
@@ -323,15 +465,17 @@ public class QueryFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        // 화면을 벗어날 때 (스와이프 할 때) 현재 적힌 글자를 ViewModel에 저장
-        viewModel.setQueryText(queryEditText.getText().toString());
+        if (queryEditText != null) {
+            // 화면을 벗어날 때 (스와이프 할 때) 현재 적힌 글자를 ViewModel에 저장
+            viewModel.setQueryText(queryEditText.getText().toString());
+        }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (executor != null && !executor.isShutdown()) {
-            executor.shutdown();
+        if (queryEditText != null) {
+            viewModel.setQueryText(queryEditText.getText().toString());
         }
     }
 }

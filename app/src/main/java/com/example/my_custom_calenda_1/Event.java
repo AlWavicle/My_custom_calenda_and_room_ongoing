@@ -5,6 +5,7 @@ import android.graphics.Color;
 import java.time.LocalDate;
 import java.util.Random;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
@@ -23,6 +24,14 @@ public class Event {
     private LocalDate startDate;
     private LocalDate endDate;
     private int color;
+    
+    // 카테고리 정보 추가
+    private String category1;
+    private String category2;
+
+    // 🚀 데이터 생성 날짜 추가 (SQLite에서 자동으로 현재 날짜를 입력하도록 설정)
+    @ColumnInfo(defaultValue = "CURRENT_DATE")
+    private String createdAt;
 
     @Ignore
     public Event(String name, LocalDate startDate, LocalDate endDate) {
@@ -32,14 +41,18 @@ public class Event {
         Random random = new Random();
         // 0~255 사이의 값을 각각 생성
         this.color = Color.rgb(random.nextInt(256), random.nextInt(256), random.nextInt(256));
+        this.createdAt = LocalDate.now().toString(); // 자바 객체 생성 시 현재 날짜 할당
     }
 
-    public Event(int id, String name, LocalDate startDate, LocalDate endDate, int color) {
+    public Event(int id, String name, LocalDate startDate, LocalDate endDate, int color, String category1, String category2, String createdAt) {
         this.id = id;
         this.name = name;
         this.startDate = startDate;
         this.endDate = endDate;
         this.color = color;
+        this.category1 = category1;
+        this.category2 = category2;
+        this.createdAt = createdAt;
     }
 
     public int getId() {
@@ -71,13 +84,42 @@ public class Event {
 
     public void setColor(int color) { this.color = color; }
 
+    public String getCategory1() {
+        return category1;
+    }
+
+    public void setCategory1(String category1) {
+        this.category1 = category1;
+    }
+
+    public String getCategory2() {
+        return category2;
+    }
+
+    public void setCategory2(String category2) {
+        this.category2 = category2;
+    }
+
+    public String getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt;
+    }
+
 
     @Override
     public String toString() {
         return "Event{" +
-                "이름='" + name + '\'' +
-                ", 시작일=" + startDate +
-                ", 종료일=" + endDate +
+                "name='" + name + '\'' +
+                ", startDate=" + startDate +
+                ", endDate=" + endDate +
+                ", id=" + id +
+                ", color=" + color +
+                ", category1='" + category1 + '\'' +
+                ", category2='" + category2 + '\'' +
+                ", createdAt='" + createdAt + '\'' +
                 '}';
     }
 

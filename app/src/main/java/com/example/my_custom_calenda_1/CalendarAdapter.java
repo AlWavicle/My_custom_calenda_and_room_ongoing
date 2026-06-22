@@ -28,6 +28,7 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     public ArrayList<LocalDate> seldate;
     public LocalDate oneSelDate;
     public int clickNum;
+    private int selectionStep = 0; // 1, 2, 3, 4 단계 순환을 위한 변수
 
     public static ArrayList<SelectSendCalenderModel> sSCModel;
 
@@ -87,6 +88,8 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
                 ArrayList<SelectSendCalenderModel> eventsOnDay = new ArrayList<>();
                 ArrayList<Integer> eventsIndex = new ArrayList<>();
+                // 이 날짜(해당 셀)에 '종료되는 일정'이 몇 개인지 세는 카운터 (반복문 밖에서 0으로 초기화)
+                int endEventCount = 1;
                 int i = 0;
                 if (sSCModel != null) {
                     for (SelectSendCalenderModel model : sSCModel) {
@@ -94,61 +97,110 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                             eventsIndex.add(i);
                             eventsOnDay.add(model);
 
+                            // 1. 일정 뷰(막대기) 생성 및 사이즈 설정 (기존과 동일)
                             View highlighter = new View(dayHolder.itemView.getContext());
                             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT, 25);
+                                    ViewGroup.LayoutParams.MATCH_PARENT, 15); // 높이 25
                             params.setMargins(0, 2, 0, 2);
                             highlighter.setLayoutParams(params);
-                            highlighter.setBackgroundColor(model.getColor());
+
+                            // 2. 이 일정이 오늘 끝나는 일정인지 확인
+                            boolean isStart = model.getStartDate() != null && date.isEqual(model.getStartDate());
+                            boolean isEnd = model.getStartDate() == null && model.getEndDate() != null && date.isEqual(model.getEndDate());
+                            boolean startisEnd = model.getStartDate() != null &&model.getEndDate() != null && date.isEqual(model.getEndDate());
+                            boolean isSingleDay = isStart && isEnd; // 하루짜리 단일 일정인지 판단
+
+                            // 3. 조건에 맞춰 배경 다르게 그리기
+                            if (isSingleDay) {
+                                // 단일 일정은 꽉 찬 네모 (혹은 이전 답변의 동그라미 적용 가능)
+                                highlighter.setBackground(new CircleDrawable(model.getColor()));
+
+                            } else if (isEnd) {
+                                // [핵심] 종료일인 경우: 커스텀 대각선 객체를 씌워줍니다.
+                                // endEventCount를 같이 넘겨주어 옆으로 밀리게 만들고, 카운트를 증가시킵니다.
+                                highlighter.setBackground(new MultiDiagonalLineDrawable(model.getColor(), endEventCount ));
+
+
+                            } else if (startisEnd) {
+                                // 시작일인 경우에 대한 처리를 추가할 수 있습니다.
+                                highlighter.setBackgroundColor(model.getColor());
+
+                            } else if (isStart) {
+                                // 시작일인 경우에 대한 처리를 추가할 수 있습니다.
+                                highlighter.setBackgroundColor(model.getColor());
+
+                            }else {
+                                // 시작일이거나 중간에 낀 날짜인 경우: 꽉 찬 네모 막대기
+                                highlighter.setBackgroundColor(model.getColor());
+                            }
+
+                            // 4. 레이아웃에 뷰 추가
                             dayHolder.highlighterLayout.addView(highlighter);
+                            i++;
                         }
-                        i++;
                     }
                 }
+                // ===== 여기까지 =====
 
                 dayHolder.itemView.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        int existingSizeOfSeldate = seldate.size();
-                        switch (existingSizeOfSeldate) {
-                            case 0:
-                                seldate.add((LocalDate) CopyItems.get(dayHolder.getAdapterPosition()));
-                                break;
-                            case 1:
-                                if (seldate.get(0).equals((LocalDate) CopyItems.get(dayHolder.getAdapterPosition()))) {
-                                    for (LocalDate date : seldate) {
-                                        notifyItemChanged(CopyItems.indexOf(date));
-                                    }
-                                    seldate.clear();
-                                    break;
-                                } else {
-                                    seldate.add((LocalDate) CopyItems.get(dayHolder.getAdapterPosition()));
-                                }
-                                break;
-                            default:
-                                for (LocalDate date : seldate) {
-                                    notifyItemChanged(CopyItems.indexOf(date));
-                                }
-                                seldate.clear();
-                                break;
+                        LocalDate clickedDate = (LocalDate) CopyItems.get(dayHolder.getAdapterPosition());
+                        
+                        // 변경 전 상태의 날짜들을 기록 (UI 갱신용)
+                        ArrayList<LocalDate> datesToNotify = new ArrayList<>(seldate);
+                        if (!datesToNotify.contains(clickedDate)) {
+                            datesToNotify.add(clickedDate);
                         }
-                        if (existingSizeOfSeldate != seldate.size()) {
-                            for (LocalDate date : seldate) {
-                                notifyItemChanged(CopyItems.indexOf(date));
+
+                        // 1-2-3-4 단계 로직 수행
+                        selectionStep = (selectionStep % 4) + 1;
+                        
+                        if (selectionStep == 1) {
+                            // 1번째 클릭: 첫 번째 선택 추가
+                            seldate.clear();
+                            seldate.add(clickedDate); // [시작일]
+                        } else if (selectionStep == 2) {
+                            // 2번째 클릭: 두 번째 선택 추가
+                            if (seldate.isEmpty()) seldate.add(null); // 혹시 시작일이 없으면 공간 확보
+                            seldate.add(clickedDate); // [시작일, 종료일]
+                        } else if (selectionStep == 3) {
+                            // 3번째 클릭: 1번(시작일)만 null로 설정
+                            if (seldate.size() >= 1) {
+                                seldate.set(0, null); // [null, 종료일]
+                            }
+                        } else {
+                            // 4번째 클릭: 모두 제거
+                            seldate.clear();
+                            selectionStep = 0; // 단계 초기화
+                        }
+
+                        // 변경된 날짜들의 아이템 뷰 갱신 (기존 + 현재 선택된 날짜들 모두)
+                        for (LocalDate d : datesToNotify) {
+                            if (d != null) {
+                                int index = CopyItems.indexOf(d);
+                                if (index != -1) notifyItemChanged(index);
+                            }
+                        }
+                        // 현재 seldate에 있는 날짜들도 갱신
+                        for (LocalDate d : seldate) {
+                            if (d != null) {
+                                int index = CopyItems.indexOf(d);
+                                if (index != -1) notifyItemChanged(index);
                             }
                         }
 
-                        if (oneSelDate != null && oneSelDate.equals(CopyItems.get(dayHolder.getAdapterPosition()))) {
+                        // 추가적인 클릭 정보 업데이트
+                        if (oneSelDate != null && oneSelDate.equals(clickedDate)) {
                             clickNum++;
                         } else {
                             clickNum = 1;
                         }
-                        oneSelDate = (LocalDate) CopyItems.get(dayHolder.getAdapterPosition());
-                        Toast.makeText(dayHolder.itemView.getContext(), "clickNum: " + clickNum + "/eventlist.size(): " + eventList.size(), Toast.LENGTH_SHORT).show();
-
+                        oneSelDate = clickedDate;
+                        
                         if (MyAL_onItemListener1 != null) {
-                            MyAL_onItemListener1.My_OnItemClick(date, eventsOnDay, holder.getAdapterPosition(), eventsIndex, clickNum);
-                            showDetail(holder.getAdapterPosition(), eventsOnDay);
+                            MyAL_onItemListener1.My_OnItemClick(date, eventsOnDay, dayHolder.getAdapterPosition(), eventsIndex, clickNum);
+                            showDetail(dayHolder.getAdapterPosition(), eventsOnDay);
                         }
                     }
                 });

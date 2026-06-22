@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
-@Database(entities = {Event.class}, version = 1)
+@Database(entities = {Event.class}, version = 3) // 버전을 2에서 3으로 상향
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
     public abstract EventDao eventDao();
@@ -18,7 +18,9 @@ public abstract class AppDatabase extends RoomDatabase {
         if (INSTANCE == null) {
             synchronized (AppDatabase.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, "calendar_database").build();
+                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(), AppDatabase.class, "calendar_database")
+                            .fallbackToDestructiveMigration() // 스키마 변경 시 기존 데이터 삭제 및 재생성
+                            .build();
                 }
             }
         }
