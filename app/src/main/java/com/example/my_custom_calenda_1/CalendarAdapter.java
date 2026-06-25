@@ -1,6 +1,10 @@
 package com.example.my_custom_calenda_1;
 
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.LayerDrawable;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -81,7 +85,20 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             } else {
                 for (LocalDate seldate1 : seldate) {
                     if (date.equals(seldate1)) {
-                        dayHolder.itemView.setBackgroundColor(Color.RED);
+                        // 1. GradientDrawable 객체 생성
+                        GradientDrawable borderDrawable = new GradientDrawable();
+
+// 2. 배경색은 투명하게 (테두리만 필요하니까)
+                        borderDrawable.setColor(Color.TRANSPARENT);
+
+// 3. 테두리 설정 (두께 5px, 빨간색)
+                        borderDrawable.setStroke(5, Color.BLACK);
+
+// 4. (선택사항) 모서리를 둥글게 하고 싶다면 (10dp 정도)
+                        borderDrawable.setCornerRadius(1f);
+
+// 5. 뷰에 적용
+                        dayHolder.itemView.setBackground(borderDrawable);
                     }
                 }
                 dayHolder.dayText.setText(String.valueOf(date.getDayOfMonth()));
@@ -89,11 +106,26 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                 ArrayList<SelectSendCalenderModel> eventsOnDay = new ArrayList<>();
                 ArrayList<Integer> eventsIndex = new ArrayList<>();
                 // 이 날짜(해당 셀)에 '종료되는 일정'이 몇 개인지 세는 카운터 (반복문 밖에서 0으로 초기화)
-                int endEventCount = 1;
+
                 int i = 0;
                 if (sSCModel != null) {
+                    //싱글스케줄 컬러 및 카운트 역할
+                    ArrayList<Integer> singsColor = new ArrayList<Integer>();
+                    // 1. [싱글 일정]일정 뷰(막대기) 생성 및 사이즈 설정 (기존과 동일)
+                    View singleHighlighter = new View(dayHolder.itemView.getContext());
+                    LinearLayout.LayoutParams singleparams = new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, 25); // 높이 25
+                    singleparams.setMargins(0, 2, 0, 2);
+                    singleHighlighter.setLayoutParams(singleparams);
+
+                    dayHolder.highlighterLayout.addView(singleHighlighter);
+
+                    //싱글스케줄 컬러 및 카운트 역할
+                    ArrayList<Integer> endsColor = new ArrayList<Integer>();
+
                     for (SelectSendCalenderModel model : sSCModel) {
-                        if (model.isWithin(date)) {
+                        int swicher=model.isWithin(date);
+                        if (swicher!=0) {
                             eventsIndex.add(i);
                             eventsOnDay.add(model);
 
@@ -104,42 +136,112 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                             params.setMargins(0, 2, 0, 2);
                             highlighter.setLayoutParams(params);
 
-                            // 2. 이 일정이 오늘 끝나는 일정인지 확인
-                            boolean isStart = model.getStartDate() != null && date.isEqual(model.getStartDate());
-                            boolean isEnd = model.getStartDate() == null && model.getEndDate() != null && date.isEqual(model.getEndDate());
-                            boolean startisEnd = model.getStartDate() != null &&model.getEndDate() != null && date.isEqual(model.getEndDate());
-                            boolean isSingleDay = isStart && isEnd; // 하루짜리 단일 일정인지 판단
-
                             // 3. 조건에 맞춰 배경 다르게 그리기
-                            if (isSingleDay) {
+                            if (swicher==3) {
                                 // 단일 일정은 꽉 찬 네모 (혹은 이전 답변의 동그라미 적용 가능)
-                                highlighter.setBackground(new CircleDrawable(model.getColor()));
 
-                            } else if (isEnd) {
+                                singsColor.add(model.getColor());
+
+                            } else if (swicher==2) {
                                 // [핵심] 종료일인 경우: 커스텀 대각선 객체를 씌워줍니다.
                                 // endEventCount를 같이 넘겨주어 옆으로 밀리게 만들고, 카운트를 증가시킵니다.
-                                highlighter.setBackground(new MultiDiagonalLineDrawable(model.getColor(), endEventCount ));
 
 
-                            } else if (startisEnd) {
+                                endsColor.add(model.getColor());
+
+
+                            } else if (swicher==1) {
                                 // 시작일인 경우에 대한 처리를 추가할 수 있습니다.
                                 highlighter.setBackgroundColor(model.getColor());
-
-                            } else if (isStart) {
-                                // 시작일인 경우에 대한 처리를 추가할 수 있습니다.
-                                highlighter.setBackgroundColor(model.getColor());
-
+                                // 4. 레이아웃에 뷰 추가
+                                dayHolder.highlighterLayout.addView(highlighter);
                             }else {
                                 // 시작일이거나 중간에 낀 날짜인 경우: 꽉 찬 네모 막대기
                                 highlighter.setBackgroundColor(model.getColor());
+                                // 4. 레이아웃에 뷰 추가
+                                dayHolder.highlighterLayout.addView(highlighter);
                             }
 
-                            // 4. 레이아웃에 뷰 추가
-                            dayHolder.highlighterLayout.addView(highlighter);
-                            i++;
+
+
                         }
+
+                        i++;
                     }
+                    if (!singsColor.isEmpty()) {
+
+                        // 2. 개수만큼 Drawable 객체 생성
+                        Drawable[] layers = new Drawable[singsColor.size()];
+                        for (int j = 0; j < singsColor.size(); j++) {
+                            layers[j] = new CircleDrawable(singsColor.get(j));
+                        }
+                        // 3. LayerDrawable로 묶기
+                        LayerDrawable layerDrawable = new LayerDrawable(layers);
+// 4. 위치 조정 (setLayerInset을 사용하면 겹치지 않게 옆으로 밀 수 있음)
+// 각 동그라미의 위치를 오른쪽으로 조금씩 밀어줍니다.
+
+                        int spacing = 20;
+                        for (int j = 0; j < layers.length; j++) {
+                            // setLayerInset(index, 좌, 상, 우, 하)
+                            layerDrawable.setLayerInset(j, j * spacing, 0, 0, 0);
+                        }
+
+
+                        View highlighterView = dayHolder.highlighterLayout.getChildAt(0);
+                        if (highlighterView != null) {
+                            // 3. 뷰의 배경을 즉시 교체합니다.
+                            highlighterView.setBackground(layerDrawable);
+                        }
+
+
+
+
+
+
+
+                    }
+
+                    if (!endsColor.isEmpty()) {
+
+
+                        // 1. [싱글 일정]일정 뷰(막대기) 생성 및 사이즈 설정 (기존과 동일)
+                        View endHighlighter = new View(dayHolder.itemView.getContext());
+                        LinearLayout.LayoutParams endparams = new LinearLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT, 25); // 높이 25
+                        endparams.setMargins(0, 2, 0, 2);
+                        endHighlighter.setLayoutParams(endparams);
+
+
+                        // 2. 개수만큼 Drawable 객체 생성
+                        Drawable[] layers = new Drawable[endsColor.size()];
+                        for (int j = 0; j < endsColor.size(); j++) {
+                            layers[j] = new MultiDiagonalLineDrawable(endsColor.get(j));
+                        }
+                        // 3. LayerDrawable로 묶기
+                        LayerDrawable endlayerDrawable = new LayerDrawable(layers);
+// 4. 위치 조정 (setLayerInset을 사용하면 겹치지 않게 옆으로 밀 수 있음)
+// 각 동그라미의 위치를 오른쪽으로 조금씩 밀어줍니다.
+
+                        int spacing = 20;
+                        for (int j = 0; j < layers.length; j++) {
+                            // setLayerInset(index, 좌, 상, 우, 하)
+                            endlayerDrawable.setLayerInset(j, j * spacing, 0, 0, 0);
+                        }
+                        endHighlighter.setBackground(endlayerDrawable);
+                        int count = dayHolder.highlighterLayout.getChildCount();
+                        if (count == 0) {
+                            dayHolder.highlighterLayout.addView(endHighlighter);
+                        }else if(count < 9) {
+                            dayHolder.highlighterLayout.addView(endHighlighter, count - 1);
+                        }else{
+                            dayHolder.highlighterLayout.addView(endHighlighter, 8);
+
+                        }
+
+                    }
+
                 }
+
                 // ===== 여기까지 =====
 
                 dayHolder.itemView.setOnClickListener(new View.OnClickListener() {
@@ -199,6 +301,9 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                         oneSelDate = clickedDate;
                         
                         if (MyAL_onItemListener1 != null) {
+                            Log.d("CalendarAdapter", "eventsIndex: " + eventsIndex.toString());
+
+
                             MyAL_onItemListener1.My_OnItemClick(date, eventsOnDay, dayHolder.getAdapterPosition(), eventsIndex, clickNum);
                             showDetail(dayHolder.getAdapterPosition(), eventsOnDay);
                         }

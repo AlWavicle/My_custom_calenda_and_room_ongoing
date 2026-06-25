@@ -219,24 +219,36 @@ public class SelectSendCalenderModel {
      * 특정 날짜가 일정 범위에 포함되는지 확인합니다.
      * 시작일이나 종료일 중 하나만 있어도 해당 날짜에 표시되도록 개선되었습니다.
      */
-    public boolean isWithin(LocalDate date) {
-        if (date == null) return false;
+    public int isWithin(LocalDate date) {
+        if (date == null) return 0;
 
         // 시작일과 종료일이 모두 없는 경우 표시 불가
-        if (startDate == null && endDate == null) return false;
+        if (startDate == null && endDate == null) return 0;
 
         // 시작일만 있는 경우: 시작일과 일치하면 표시
-        if (startDate != null && endDate == null) {
-            return date.isEqual(startDate);
+        if (startDate != null && endDate == null&&date.isEqual(startDate)) {
+            return 1;
         }
 
         // 종료일만 있는 경우: 종료일과 일치하면 표시
-        if (startDate == null && endDate != null) {
-            return date.isEqual(endDate);
+        if (startDate == null && endDate != null&&date.isEqual(endDate)) {
+            return 2;
         }
 
-        // 시작일과 종료일이 모두 있는 경우: 범위 내에 있는지 확인 (시작일 <= date <= 종료일)
-        return (date.isEqual(startDate) || date.isAfter(startDate)) &&
-               (date.isEqual(endDate) || date.isBefore(endDate));
+        // 시작일=종료일인 경우
+        if (startDate != null && startDate.equals(endDate) && date.isEqual(endDate)) {
+            return 3;
+        }
+
+        // 시작일과 종료일이 모두 있는 경우: 범위 구분
+        if (startDate != null && endDate != null) {
+            if (date.isEqual(startDate)) return 1;
+            if (date.isEqual(endDate)) return 2;
+            if (date.isAfter(startDate) && date.isBefore(endDate)) {
+                return 4;
+            }
+        }
+
+        return 0;
     }
 }

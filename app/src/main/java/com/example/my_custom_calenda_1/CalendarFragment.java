@@ -30,6 +30,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.function.Predicate;
 
 public class CalendarFragment extends Fragment {
     private CalendarAdapter adapter;
@@ -128,21 +129,34 @@ public class CalendarFragment extends Fragment {
         find_remove_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (romove >= 0 && romove < eventList.size()) {
-                    Event eventToDelete = eventList.get(romove);
-                    if (eventToDelete != null) {
+                if (romove >= 0 && romove < CalendarAdapter.sSCModel.size()) {
+                    int removeIdNum = CalendarAdapter.sSCModel.get(romove).getId();
+
+                    if (removeIdNum != -1) {
                         Executors.newSingleThreadExecutor().execute(() -> {
-                            AppDatabase.getDatabase(requireContext()).eventDao().delete(eventToDelete);
+                            AppDatabase.getDatabase(requireContext()).eventDao().deleteById(removeIdNum);
                             requireActivity().runOnUiThread(() -> {
-                                eventList.remove(romove);
+
+                                //이벤트리스트 아이디값으로 리스트 삭제 removeif()함수 이용
+                                eventList.removeIf(new Predicate<Event>() {
+                                    @Override
+                                    public boolean test(Event event) {
+                                        return event.getId() == removeIdNum; // 여기서 true면 삭제!
+                                    }
+                                });
+
                                 romove = -1;
                                 find_pre_view.setText("Selected Date Info");
-                                setRecyclerView();
+                                make_EventList(); // Refresh data from DB and update UI
+                                Toast.makeText(requireContext(), "일정이 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+
                             });
                         });
                     } else {
                         Toast.makeText(requireContext(), "삭제할 항목이 없습니다."           , Toast.LENGTH_SHORT).show();
                     }
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 일정을 선택해주세요.", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -223,9 +237,10 @@ public class CalendarFragment extends Fragment {
                     // 3. eventsindex에서 실제 eventList의 위치를 꺼냄
                     romove = eventsindex.get(targetIndex);
 
+
                     // 4. romove가 유효한 인덱스(0 이상)인지 확인 후 UI 업데이트
-                    if (romove >= 0 && romove < eventList.size()) {
-                        find_pre_view.setText(eventList.get(romove).getName());
+                    if (romove >= 0 && romove < CalendarAdapter.sSCModel.size()) {
+                        find_pre_view.setText(CalendarAdapter.sSCModel.get(romove).getId() + ": " + CalendarAdapter.sSCModel.get(romove).getName());
                     } else {
                         find_pre_view.setText("No Event");
                         romove = -1;

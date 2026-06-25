@@ -18,4 +18,6 @@ public interface EventDao {
     @Query("SELECT * FROM events")
     List<Event> getAllEvents();//저장된 모든 일정 불러오기
 
+    @Query("DELETE FROM events WHERE id = :id")
+    void deleteById(int id);
 }
