@@ -18,9 +18,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.my_custom_calenda_1.CalendarAdapter;
+
 import com.example.my_custom_calenda_1.Event;
 import com.example.my_custom_calenda_and_room.R;
 
@@ -33,10 +34,14 @@ import java.util.concurrent.Executors;
 import java.util.function.Predicate;
 
 public class CalendarFragment extends Fragment {
-    private CalendarAdapter adapter;
+
+
+    // 1. 변수 선언 추가
+    WeekEventView weekEventLayer;
 
     // native) android.widget.TextView: 텍스트를 화면에 표시하는 안드로이드 기본 뷰 클래스입니다.
     TextView find_yearmonthText;
+
     // native) java.time.LocalDate: 현재 선택된 월 정보를 담는 자바 네이티브 날짜 클래스입니다.
     LocalDate local_selectedDate;
 
@@ -59,6 +64,9 @@ public class CalendarFragment extends Fragment {
     int romove;
 
     int nums;
+
+    // 🚀 ViewModel 추가 (다른 공유 데이터 용도 유지 가능)
+    private SharedViewModel viewModel;
     // 기존 MainActivity에 있던 TextView, RecyclerView 등 변수 선언
 
     @Nullable
@@ -68,12 +76,17 @@ public class CalendarFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_calendar, container, false);
 
         //--------- 기존 MainActivity의 onCreate()에 있던 초기화 로직을 여기서 수행
+
         //View객체 id와 묶기
         myFindViewByIdSet(view);
         make_EventList();// eventlist array 만들고 안에 행사 넣음
 
         // native) LocalDate.now(): 현재 시스템의 날짜 정보를 가져오는 정적 함수입니다.
         local_selectedDate = LocalDate.now();
+
+        // 🚀 ViewModel 초기화
+        viewModel = new androidx.lifecycle.ViewModelProvider(requireActivity()).get(SharedViewModel.class);
+
         setRecyclerView();
 
         // native) View.OnClickListener: 뷰 클릭 이벤트를 감지하는 안드로이드 인터페이스입니다.
@@ -99,10 +112,15 @@ public class CalendarFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 String scheduleText = find_schedule_editText.getText().toString();
-                // 🚀 [수정] 날짜가 2개가 아니어도 (하나만 있거나 없어도) 텍스트가 있으면 저장 가능하게 변경
                 if (!scheduleText.isEmpty()) {
-                    LocalDate startDate = (adapter.seldate.size() > 0) ? adapter.seldate.get(0) : null;
-                    LocalDate endDate = (adapter.seldate.size() > 1) ? adapter.seldate.get(1) : null;
+                    OuterCalendarAdapter currentAdapter = (OuterCalendarAdapter) find_cal_num_recyclerView.getAdapter();
+                    LocalDate startDate = null;
+                    LocalDate endDate = null;
+                    
+                    if (currentAdapter != null) {
+                        startDate = (currentAdapter.seldate.size() > 0) ? currentAdapter.seldate.get(0) : null;
+                        endDate = (currentAdapter.seldate.size() > 1) ? currentAdapter.seldate.get(1) : null;
+                    }
                     
                     Event newEvent = new Event(scheduleText, startDate, endDate);
 
@@ -111,11 +129,7 @@ public class CalendarFragment extends Fragment {
                         requireActivity().runOnUiThread(() -> {
                             eventList.add(newEvent);
                             find_schedule_editText.setText("");
-                            
-                            // 저장 후 선택 해제 (원할 경우 주석 해제)
-                            // adapter.seldate.clear(); 
-                            
-                            setRecyclerView();
+                            make_EventList(); // Refresh
                             Toast.makeText(requireContext(), "일정이 추가되었습니다.", Toast.LENGTH_SHORT).show();
                         });
                     });
@@ -129,22 +143,13 @@ public class CalendarFragment extends Fragment {
         find_remove_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (romove >= 0 && romove < CalendarAdapter.sSCModel.size()) {
-                    int removeIdNum = CalendarAdapter.sSCModel.get(romove).getId();
+                if (OuterCalendarAdapter.sSCModel != null && romove >= 0 && romove < OuterCalendarAdapter.sSCModel.size()) {
+                    int removeIdNum = OuterCalendarAdapter.sSCModel.get(romove).getId();
 
                     if (removeIdNum != -1) {
                         Executors.newSingleThreadExecutor().execute(() -> {
                             AppDatabase.getDatabase(requireContext()).eventDao().deleteById(removeIdNum);
                             requireActivity().runOnUiThread(() -> {
-
-                                //이벤트리스트 아이디값으로 리스트 삭제 removeif()함수 이용
-                                eventList.removeIf(new Predicate<Event>() {
-                                    @Override
-                                    public boolean test(Event event) {
-                                        return event.getId() == removeIdNum; // 여기서 true면 삭제!
-                                    }
-                                });
-
                                 romove = -1;
                                 find_pre_view.setText("Selected Date Info");
                                 make_EventList(); // Refresh data from DB and update UI
@@ -153,7 +158,7 @@ public class CalendarFragment extends Fragment {
                             });
                         });
                     } else {
-                        Toast.makeText(requireContext(), "삭제할 항목이 없습니다."           , Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), "삭제할 항목이 없습니다.", Toast.LENGTH_SHORT).show();
                     }
                 } else {
                     Toast.makeText(requireContext(), "삭제할 일정을 선택해주세요.", Toast.LENGTH_SHORT).show();
@@ -174,6 +179,9 @@ public class CalendarFragment extends Fragment {
         find_schedule_editText = view.findViewById(R.id.schedule_editText);
         find_save_btn = view.findViewById(R.id.save_btn);
         find_remove_btn = view.findViewById(R.id.remove_btn);
+
+        // 2. 투명 뷰 찾기 추가
+        weekEventLayer = view.findViewById(R.id.weekEventView);
     }
 
 
@@ -216,66 +224,182 @@ public class CalendarFragment extends Fragment {
 
 
 
-    private void setRecyclerView(){//리사이클뷰어 객체연결완성     //1. 캘린더어뎁터객체생성
-        find_yearmonthText.setText(localdate_fomat_tostring(local_selectedDate));// XML TEXT에 글자를 값을 넣는다
-        ArrayList<LocalDate> Local_Cal_ArrayDayList = Create_aLocalArray_ofDays_fortheCalendar(local_selectedDate);//달력array만들기
+    private void setRecyclerView() {
+        find_yearmonthText.setText(localdate_fomat_tostring(local_selectedDate));
+        ArrayList<LocalDate> Local_Cal_ArrayDayList = Create_aLocalArray_ofDays_fortheCalendar(local_selectedDate);
 
-        //CalendarAdapter의 객체생성
-        //3번째 파라미터는 해당 클래스 객체의 리스너를 final로 따로 저장됨
-        // 객체생성시작
-        adapter = new CalendarAdapter(Local_Cal_ArrayDayList, eventList, new CalendarAdapter.My_OnItemListener() {
+        // 7일씩 묶어 WeekRow 리스트 구성
+        OuterCalendarAdapter currentAdapter = (OuterCalendarAdapter) find_cal_num_recyclerView.getAdapter();
+        List<LocalDate> selDates = (currentAdapter != null) ? currentAdapter.seldate : new ArrayList<>();
+        List<Object> weekRowItems = createWeekRowData(Local_Cal_ArrayDayList, eventList, selDates);
 
-            //온아이템클릭 함수의 date 파라메터는 안씀
-            //리스너 구현
+        // Outer 어댑터 객체 생성 및 리스너 구현
+        OuterCalendarAdapter adapter = new OuterCalendarAdapter(weekRowItems, new InnerDayAdapter.OnDayClickListener() {
             @Override
-            public void My_OnItemClick(LocalDate date, ArrayList<SelectSendCalenderModel> events, int position, ArrayList<Integer> eventsindex, int clicknums) {
-                // 1. 이벤트 인덱스 리스트가 유효한지 먼저 확인
-                if (eventsindex != null && !eventsindex.isEmpty()) {
+            public void onDayClick(LocalDate date, int parentWeekPosition,
+                                   ArrayList<SelectSendCalenderModel> eventsOnDay,
+                                   ArrayList<Integer> eventsIndex) {
 
-                    int targetIndex = (clicknums-1) % eventsindex.size();
-
-                    // 3. eventsindex에서 실제 eventList의 위치를 꺼냄
-                    romove = eventsindex.get(targetIndex);
-
-
-                    // 4. romove가 유효한 인덱스(0 이상)인지 확인 후 UI 업데이트
-                    if (romove >= 0 && romove < CalendarAdapter.sSCModel.size()) {
-                        find_pre_view.setText(CalendarAdapter.sSCModel.get(romove).getId() + ": " + CalendarAdapter.sSCModel.get(romove).getName());
-                    } else {
-                        find_pre_view.setText("No Event");
-                        romove = -1;
-                    }
+                // 1. 다중 클릭(순환)을 위한 clickNum 처리
+                if (local_selectedDate != null && local_selectedDate.equals(date)) {
+                    nums++;
                 } else {
-                    // 이벤트가 없는 날짜 클릭 시 초기화
-                    find_pre_view.setText("No Event");
-                    romove = -1;
+                    nums = 1;
+                }
+                local_selectedDate = date;
+
+                // 2. 🚀 [4단계 선택 로직] 적용
+                OuterCalendarAdapter currentAdapter = (OuterCalendarAdapter) find_cal_num_recyclerView.getAdapter();
+                if (currentAdapter != null) {
+                    currentAdapter.selectionStep = (currentAdapter.selectionStep % 4) + 1;
+                    
+                    if (currentAdapter.selectionStep == 1) {
+                        currentAdapter.seldate.clear();
+                        currentAdapter.seldate.add(date);
+                    } else if (currentAdapter.selectionStep == 2) {
+                        if (currentAdapter.seldate.isEmpty()) currentAdapter.seldate.add(null);
+                        currentAdapter.seldate.add(date);
+                    } else if (currentAdapter.selectionStep == 3) {
+                        if (!currentAdapter.seldate.isEmpty()) currentAdapter.seldate.set(0, null);
+                    } else {
+                        currentAdapter.seldate.clear();
+                        currentAdapter.selectionStep = 0;
+                    }
+                    // 🚀 원래 클릭 로직 복구: setRecyclerView() 호출 대신 notifyDataSetChanged()만 사용
+                    currentAdapter.notifyDataSetChanged(); 
                 }
 
+                // 3. 상단 텍스트 정보 표시
+                if (currentAdapter != null) {
+                    LocalDate start = (currentAdapter.seldate.size() > 0) ? currentAdapter.seldate.get(0) : null;
+                    LocalDate end = (currentAdapter.seldate.size() > 1) ? currentAdapter.seldate.get(1) : null;
+                    String dateInfo = "시작: " + (start != null ? start : "null") + " / 종료: " + (end != null ? end : "null");
 
-                // 커스텀 어댑터 내의 showDetail 함수를 호출하여 동적으로 뷰를 조작합니다.
-                //1. 리사이클러뷰의 어뎁터함수를 가지고 어뎁터를 뽑아낸다.(이것이 의미하는 바가 뭘까?)
-                // 2. 리사이클러뷰 -> 어뎁터.캘린더어뎁터로 형변환
-                ((CalendarAdapter)find_cal_num_recyclerView.getAdapter()).showDetail(position, events);
-            }
-        });//캘린더 어뎁터 객체생성 완료
+                    if (eventsIndex != null && !eventsIndex.isEmpty()) {
+                        int targetIndex = (nums - 1) % eventsIndex.size();
+                        romove = eventsIndex.get(targetIndex);
+                        if (romove >= 0 && romove < OuterCalendarAdapter.sSCModel.size()) {
+                            find_pre_view.setText("id: "+OuterCalendarAdapter.sSCModel.get(romove).getId()+"  "+dateInfo + "\n(일정: " + OuterCalendarAdapter.sSCModel.get(romove).getName() + ")");
+                        } else {
+                            find_pre_view.setText(dateInfo);
+                            romove = -1;
+                        }
+                    } else {
+                        find_pre_view.setText(dateInfo);
+                        romove = -1;
+                    }
+                }
 
-        //2. 그리드 매니저 객체생성 및 어뎁터연결
-        // native) GridLayoutManager: 리사이클러뷰를 그리드(바둑판) 형태로 배치하는 레이아웃 매니저입니다.
-        GridLayoutManager manager = new GridLayoutManager(requireContext(), 7);
-        // native) SpanSizeLookup: 특정 위치의 아이템이 몇 개의 열을 차지할지 결정하는 클래스입니다.
-        manager.setSpanSizeLookup(new GridLayoutManager.SpanSizeLookup() {
-            @Override
-            public int getSpanSize(int position) {
-                // 상세 정보 칸(TYPE_DETAIL)인 경우 가로 7칸 전체를 사용하게 하여 중간 삽입 효과를 줍니다.
-                return adapter.getItemViewType(position) == 1 ? 7 : 1;
+                // 4. 디테일 뷰 열기 호출
+                ((OuterCalendarAdapter) find_cal_num_recyclerView.getAdapter()).showDetail(parentWeekPosition, eventsOnDay);
             }
         });
-        //리사이클뷰와 매니저 및 어뎁터 연결
-        find_cal_num_recyclerView.setLayoutManager(manager);
+
+        find_cal_num_recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         find_cal_num_recyclerView.setAdapter(adapter);
-    }//setmonthview 끝
+
+        // 🚀 리사이클러뷰 빈 공간(배경) 클릭 시 디테일 뷰 접기
+        find_cal_num_recyclerView.addOnItemTouchListener(new RecyclerView.OnItemTouchListener() {
+            @Override
+            public boolean onInterceptTouchEvent(@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {
+                if (e.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+                    View child = rv.findChildViewUnder(e.getX(), e.getY());
+                    if (child == null) {
+                        // 자식 뷰(아이템)가 없는 빈 공간을 터치한 경우
+                        OuterCalendarAdapter currentAdapter = (OuterCalendarAdapter) rv.getAdapter();
+                        if (currentAdapter != null) {
+                            currentAdapter.showDetail(-1, null);
+                        }
+                    }
+                }
+                return false;
+            }
+            @Override public void onTouchEvent(@NonNull RecyclerView rv, @NonNull android.view.MotionEvent e) {}
+            @Override public void onRequestDisallowInterceptTouchEvent(boolean disallowIntercept) {}
+        });
+    }
 
 
+
+    // 1. (핵심) 전체 이벤트 리스트를 도화지 전용 데이터(WeekEvent)로 변환하는 함수
+    private List<WeekEvent> getWeekEventsForLayer(ArrayList<LocalDate> calendarDays, ArrayList<SelectSendCalenderModel> allEvents) {
+        List<WeekEvent> weekEvents = new ArrayList<>();
+
+        // 등록된 모든 일정을 하나씩 확인
+        for (SelectSendCalenderModel event : allEvents) {
+            LocalDate startDate = event.getStartDate();
+            LocalDate endDate = event.getEndDate();
+
+            int type = 0; // 기본 막대
+            
+            if (startDate != null && endDate != null) {
+                if (startDate.equals(endDate)) {
+                    type = 3; // 당일 - 동그라미
+                } else {
+                    type = 0; // 기간 - 막대
+                }
+            } else if (startDate != null) {
+                type = 1; // 시작만 - 왼쪽 하단 직삼각형
+                endDate = startDate;
+            } else if (endDate != null) {
+                type = 2; // 종료만 - 오른쪽 하단 직삼각형
+                startDate = endDate;
+            } else {
+                continue; // 둘 다 없으면 무시
+            }
+
+            int startIndex = getDayIndex(startDate, calendarDays, true);
+            int endIndex = getDayIndex(endDate, calendarDays, false);
+
+            if (startIndex != -1 && endIndex != -1 && startIndex <= endIndex) {
+                int color = event.getColor();
+                WeekEvent we = new WeekEvent(startIndex, endIndex, color, event.getName());
+                we.type = type; // 타입 설정
+                weekEvents.add(we);
+            }
+        }
+        return weekEvents;
+    }
+
+    // 2. 특정 날짜가 42칸 중 몇 번째 칸인지 찾아주는 함수 (이전/다음 달 걸침 처리 완벽 대응)
+    private int getDayIndex(LocalDate targetDate, ArrayList<LocalDate> calendarDays, boolean isStart) {
+        if (targetDate == null) return -1;
+
+        LocalDate firstDateOfMonth = null;
+        int firstDateIndex = -1;
+        LocalDate lastDateOfMonth = null;
+        int lastDateIndex = -1;
+
+        // 달력 42칸 중에서 이번 달 1일과 말일의 위치를 찾음 (null이 아닌 진짜 날짜 칸)
+        for (int i = 0; i < calendarDays.size(); i++) {
+            if (calendarDays.get(i) != null) {
+                if (firstDateOfMonth == null) {
+                    firstDateOfMonth = calendarDays.get(i);
+                    firstDateIndex = i;
+                }
+                lastDateOfMonth = calendarDays.get(i);
+                lastDateIndex = i;
+            }
+        }
+
+        // 일정이 이번 달 1일보다 '이전'에 시작했다면 -> 달력의 가장 첫 칸(1일)부터 막대를 그리기 시작함
+        if (isStart && targetDate.isBefore(firstDateOfMonth)) {
+            return firstDateIndex;
+        }
+        // 일정이 이번 달 말일보다 '이후'에 끝난다면 -> 달력의 가장 마지막 칸(말일)까지 막대를 쭉 그림
+        if (!isStart && targetDate.isAfter(lastDateOfMonth)) {
+            return lastDateIndex;
+        }
+
+        // 그 외의 경우 (이번 달 안에 일정이 포함됨) -> 정확한 인덱스를 찾음
+        for (int i = 0; i < calendarDays.size(); i++) {
+            if (calendarDays.get(i) != null && calendarDays.get(i).equals(targetDate)) {
+                return i;
+            }
+        }
+
+        return -1; // 이번 달 화면에 아예 표시할 필요가 없는 경우
+    }
 
 
 
@@ -302,6 +426,78 @@ public class CalendarFragment extends Fragment {
         }
         return local_cal_dayList;
     }
+    private List<Object> createWeekRowData(ArrayList<LocalDate> dayList, ArrayList<Event> allEvents, List<LocalDate> selDates) {
+        List<Object> weekRows = new ArrayList<>();
+
+        // 🚀 사용자가 "에스큐엘 셀렉트문을 할때만 달력에 표시되게 해줘"라고 했으므로
+        // sSCModel이 있을 때만 데이터를 사용하고, 없으면 빈 리스트를 사용합니다.
+        
+        ArrayList<SelectSendCalenderModel> sscEvents = new ArrayList<>();
+        
+        if (OuterCalendarAdapter.sSCModel != null && !OuterCalendarAdapter.sSCModel.isEmpty()) {
+            sscEvents.addAll(OuterCalendarAdapter.sSCModel);
+        } else {
+            // SQL 결과가 없으면 아무것도 표시하지 않음 (이전에는 Room 데이터를 넣었으나 제거)
+            // OuterCalendarAdapter.sSCModel = sscEvents; // (필요시 비워줌)
+        }
+
+        // 2. 전체 42일 기준의 막대 데이터(WeekEvent)를 미리 계산
+        List<WeekEvent> allWeekEvents = getWeekEventsForLayer(dayList, sscEvents);
+
+        // 3. 42일(6주)을 7개씩 묶어서 6개의 WeekRow 객체 생성
+        for (int i = 0; i < 42; i += 7) {
+            WeekRow row = new WeekRow();
+            int weekStartIdx = i;
+            int weekEndIdx = i + 6;
+
+            // 1) 날짜 7개 할당
+            for (int j = 0; j < 7; j++) {
+                row.days.add(dayList.get(weekStartIdx + j));
+            }
+
+            // 2) 이 주(Week)에 걸치는 막대기들을 잘라서 rowEvents에 담음
+            List<Integer> lanesOccupiedUntil = new ArrayList<>(); // 각 레인이 언제까지 차 있는지 저장
+
+            for (WeekEvent we : allWeekEvents) {
+                // 겹치는지 확인
+                int overlapStart = Math.max(we.startDayIndex, weekStartIdx);
+                int overlapEnd = Math.min(we.endDayIndex, weekEndIdx);
+
+                if (overlapStart <= overlapEnd) {
+                    int startInWeek = overlapStart - weekStartIdx;
+                    int endInWeek = overlapEnd - weekStartIdx;
+
+                    // 이 주에서 사용할 레인(lane) 결정
+                    int targetLane = -1;
+                    for (int l = 0; l < lanesOccupiedUntil.size(); l++) {
+                        if (lanesOccupiedUntil.get(l) < startInWeek) {
+                            targetLane = l;
+                            break;
+                        }
+                    }
+
+                    if (targetLane == -1) {
+                        targetLane = lanesOccupiedUntil.size();
+                        lanesOccupiedUntil.add(endInWeek);
+                    } else {
+                        lanesOccupiedUntil.set(targetLane, endInWeek);
+                    }
+
+                    row.addRowEvent(new WeekEvent(
+                            startInWeek,
+                            endInWeek,
+                            we.color,
+                            we.title,
+                            targetLane,
+                            we.type // 원본 타입 유지
+                    ));
+                }
+            }
+            weekRows.add(row);
+        }
+        return weekRows;
+    }
+
 
 
 }

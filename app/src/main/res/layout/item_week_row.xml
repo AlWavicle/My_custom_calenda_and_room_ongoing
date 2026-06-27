@@ -1,0 +1,15 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/inner_day_recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:nestedScrollingEnabled="false" />
+
+    <com.example.my_custom_calenda_1.WeekEventView
+        android:id="@+id/rowEventLayer"
+        android:layout_width="match_parent"
+        android:layout_height="80dp" />
+</FrameLayout>

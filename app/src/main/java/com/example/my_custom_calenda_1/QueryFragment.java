@@ -417,7 +417,7 @@ public class QueryFragment extends Fragment {
                                     i++;
                                 }
 
-                                CalendarAdapter.sSCModel = new ArrayList<SelectSendCalenderModel>();
+                                OuterCalendarAdapter.sSCModel = new ArrayList<SelectSendCalenderModel>();
                                 for (int j = 1; j < sendArrayListResult.size(); j++) {
                                     ArrayList<String> selevent = (ArrayList<String>)sendArrayListResult.get(j);
                                     SelectSendCalenderModel model = new SelectSendCalenderModel.Builder()
@@ -434,7 +434,7 @@ public class QueryFragment extends Fragment {
                                             .setCategory2(category2Col != -1 ? selevent.get(category2Col) : null)
                                             .setCreatedAt(createdAtCol != -1 ? selevent.get(createdAtCol) : null)
                                             .build();
-                                    CalendarAdapter.sSCModel.add(model);
+                                    OuterCalendarAdapter.sSCModel.add(model);
                                 }
                             }
                             //__

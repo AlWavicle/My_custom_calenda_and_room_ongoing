@@ -1,4 +1,5 @@
-package com.example.my_custom_calenda_1;
+/*
+//*package com.example.my_custom_calenda_1;
 
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
@@ -19,11 +20,15 @@ import com.example.my_custom_calenda_and_room.R;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
 public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_DAY = 0;
     private static final int TYPE_DETAIL = 1;
+
+    // (예시) 5주 치 데이터가 있다고 가정
+    private int weekCount = 5;
 
     private final ArrayList<Object> CopyItems;
     public ArrayList<Event> eventList;
@@ -69,14 +74,41 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             View view = inflater.inflate(R.layout.event_detail_item, parent, false);
             return new DetailViewHolder(view);
         }
+
     }
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof CalendarViewHolder) {
+
+
             CalendarViewHolder dayHolder = (CalendarViewHolder) holder;
             LocalDate date = (LocalDate) CopyItems.get(position);
             dayHolder.highlighterLayout.removeAllViews();
+            if (dayHolder.eventLayout != null) {
+                dayHolder.eventLayout.removeAllViews();
+                // If this is the start of a week (Sunday), we can inflate or setup the WeekEventView
+                if (position % 7 == 0 && sSCModel != null) {
+                    WeekEventView weekEventView;
+                    if (dayHolder.eventLayout.getChildCount() > 0 && dayHolder.eventLayout.getChildAt(0) instanceof WeekEventView) {
+                        weekEventView = (WeekEventView) dayHolder.eventLayout.getChildAt(0);
+                    } else {
+                        weekEventView = new WeekEventView(dayHolder.itemView.getContext());
+                    dayHolder.eventLayout.addView(weekEventView);
+
+                    List<LocalDate> weekDays = new ArrayList<>();
+                    for (int i = 0; i < 7 && (position + i) < CopyItems.size(); i++) {
+                        Object item = CopyItems.get(position + i);
+                        if (item instanceof LocalDate) {
+                            weekDays.add((LocalDate) item);
+                        }
+                    }
+
+                    if (!weekDays.isEmpty()) {
+                        weekEventView.setWeekData(weekDays, sSCModel);
+                    }
+                }
+            }
             dayHolder.itemView.setBackgroundColor(Color.WHITE);
 
             if (date == null) {
@@ -353,11 +385,15 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     static class CalendarViewHolder extends RecyclerView.ViewHolder {
         TextView dayText;
         LinearLayout highlighterLayout;
+        LinearLayout eventLayout;
+
 
         public CalendarViewHolder(@NonNull View itemView) {
             super(itemView);
             dayText = itemView.findViewById(R.id.dayText);
             highlighterLayout = itemView.findViewById(R.id.highlighterLayout);
+            eventLayout = itemView.findViewById(R.id.eventLayout);
+
         }
     }
 
@@ -372,3 +408,4 @@ public class CalendarAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         }
     }
 }
+//**/

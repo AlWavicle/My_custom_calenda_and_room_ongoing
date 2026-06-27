@@ -24,4 +24,13 @@
         android:textSize="18sp"
         android:textStyle="bold"/>
 
+    <LinearLayout
+        android:id="@+id/eventLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:paddingTop="20dp"/>
+
+
 </FrameLayout>

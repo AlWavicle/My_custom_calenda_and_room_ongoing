@@ -104,13 +104,23 @@
             android:textAlignment="center"
             android:textColor="@android:color/holo_blue_light"/>
     </LinearLayout>
-
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/cal_num_recyclerView"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="5dp"/>
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/cal_num_recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="5dp"/>
+
+        <com.example.my_custom_calenda_1.WeekEventView
+            android:id="@+id/weekEventView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+    </FrameLayout>
     <TextView
         android:id="@+id/pre_view"
         android:layout_width="match_parent"

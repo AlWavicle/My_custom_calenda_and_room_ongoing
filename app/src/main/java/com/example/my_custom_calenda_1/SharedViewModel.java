@@ -30,6 +30,17 @@ public class SharedViewModel extends ViewModel {
 
     public final Handler handler = new Handler(Looper.getMainLooper());
 
+    // 🚀 SQLite SELECT 검색 결과를 담는 LiveData 추가
+    private final MutableLiveData<List<SelectSendCalenderModel>> filteredEvents = new MutableLiveData<>();
+
+    public MutableLiveData<List<SelectSendCalenderModel>> getFilteredEvents() {
+        return filteredEvents;
+    }
+
+    public void setFilteredEvents(List<SelectSendCalenderModel> events) {
+        filteredEvents.postValue(events);
+    }
+
     // DB가 없거나 닫혀있으면 새로 열어서 반환하는 헬퍼 메서드
     public SQLiteDatabase getOrOpenDatabase(Context context, String dbName) {
         if (mDb == null || !mDb.isOpen()) {
