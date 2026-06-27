@@ -197,14 +197,38 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="prequery_btn" />
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="2dp"
+                android:text="pre\nquery" />
 
             <Button
                 android:id="@+id/nextquery_btn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="nextquery_btn" />
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="2dp"
+                android:text="next\nquery" />
+            <Button
+                android:id="@+id/savequery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="2dp"
+                android:text="save\nquery" />
+            <Button
+                android:id="@+id/removequery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:padding="0dp"
+                android:minWidth="0dp"
+                android:minHeight="2dp"
+                android:text="remove\nquery" />
         </LinearLayout>
         <TextView
             android:id="@+id/columview"
@@ -214,5 +238,11 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textIsSelectable="true"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/savedquery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:nestedScrollingEnabled="true" />
     </LinearLayout>
 </ScrollView>

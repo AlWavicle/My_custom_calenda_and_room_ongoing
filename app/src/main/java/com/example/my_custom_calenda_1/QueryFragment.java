@@ -24,6 +24,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.my_custom_calenda_and_room.R;
 
@@ -69,6 +70,10 @@ public class QueryFragment extends Fragment {
     private Button Lessthansign_btn, greaterthan_btn, underscore_btn, plus_btn, minus_btn, slesh_btn, past_btn;
 
     private TextView find_columview;
+    private Button savequery_btn;
+    private Button removequery_btn;
+    private RecyclerView savedquery_recyclerView;
+    private SavedQueryAdapter savedQueryAdapter;
 
     @Nullable
     @Override
@@ -79,6 +84,9 @@ public class QueryFragment extends Fragment {
         find_selectquery_btn = view.findViewById(R.id.selectquery_btn);
         prequery_btn = view.findViewById(R.id.prequery_btn);
         nextquery_btn = view.findViewById(R.id.nextquery_btn);
+        savequery_btn = view.findViewById(R.id.savequery_btn);
+        removequery_btn = view.findViewById(R.id.removequery_btn);
+        savedquery_recyclerView = view.findViewById(R.id.savedquery);
         find_columview = view.findViewById(R.id.columview);
         
         dateconversionEditText = view.findViewById(R.id.dateconversionEditText);
@@ -113,6 +121,60 @@ public class QueryFragment extends Fragment {
         setupSymbolButton(minus_btn, "-");
         setupSymbolButton(slesh_btn, "/");
 
+        // SavedQuery 리사이클러뷰 설정
+        savedQueryAdapter = new SavedQueryAdapter(new SavedQueryAdapter.OnQueryClickListener() {
+            @Override
+            public void onQueryClick(SavedQuery savedQuery) {
+                queryEditText.setText(savedQuery.getQuery());
+            }
+
+            @Override
+            public void onQueryLongClick(String query) {
+                // 🚀 롱클릭 시 클립보드에 복사
+                ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Saved Query", query);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(requireContext(), "쿼리가 복사되었습니다.", Toast.LENGTH_SHORT).show();
+            }
+        });
+        savedquery_recyclerView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(requireContext()));
+        savedquery_recyclerView.setAdapter(savedQueryAdapter);
+        refreshSavedQueries();
+
+        // savequery 버튼 클릭 처리
+        if (savequery_btn != null) {
+            savequery_btn.setOnClickListener(v -> {
+                String currentQuery = queryEditText.getText().toString().trim();
+                if (!currentQuery.isEmpty()) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().insert(new SavedQuery(currentQuery, System.currentTimeMillis()));
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 저장되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                }
+            });
+        }
+
+        // removequery 버튼 클릭 처리
+        if (removequery_btn != null) {
+            removequery_btn.setOnClickListener(v -> {
+                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
+                if (selected != null) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // 1. 날짜 변환 에딧텍스트 엔터 처리
         if (dateconversionEditText != null) {
             // 엔터 시 줄바꿈 방지를 위해 싱글라인 설정 및 키보드 엔터 액션 설정
@@ -145,6 +207,24 @@ public class QueryFragment extends Fragment {
             });
         }
 
+        // removequery 버튼 클릭 처리
+        if (removequery_btn != null) {
+            removequery_btn.setOnClickListener(v -> {
+                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
+                if (selected != null) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
         // 2. 컨버트 버튼 클릭 처리 (현재 커서 위치에 붙여넣기)
         if (convertDateBtn != null) {
             convertDateBtn.setOnClickListener(v -> {
@@ -154,6 +234,24 @@ public class QueryFragment extends Fragment {
                     int end = Math.max(queryEditText.getSelectionEnd(), 0);
                     queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
                             dateStr, 0, dateStr.length());
+                }
+            });
+        }
+
+        // removequery 버튼 클릭 처리
+        if (removequery_btn != null) {
+            removequery_btn.setOnClickListener(v -> {
+                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
+                if (selected != null) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -175,6 +273,24 @@ public class QueryFragment extends Fragment {
                     }
                 } else {
                     Toast.makeText(requireContext(), "클립보드가 비어있습니다.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+
+        // removequery 버튼 클릭 처리
+        if (removequery_btn != null) {
+            removequery_btn.setOnClickListener(v -> {
+                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
+                if (selected != null) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
                 }
             });
         }
@@ -460,6 +576,35 @@ public class QueryFragment extends Fragment {
                         symbol, 0, symbol.length());
             });
         }
+
+        // removequery 버튼 클릭 처리
+        if (removequery_btn != null) {
+            removequery_btn.setOnClickListener(v -> {
+                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
+                if (selected != null) {
+                    Executors.newSingleThreadExecutor().execute(() -> {
+                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
+                        requireActivity().runOnUiThread(() -> {
+                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
+                            refreshSavedQueries();
+                        });
+                    });
+                } else {
+                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private void refreshSavedQueries() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            java.util.List<SavedQuery> savedQueries = AppDatabase.getDatabase(requireContext()).savedQueryDao().getAllSavedQueries();
+            requireActivity().runOnUiThread(() -> {
+                if (savedQueryAdapter != null) {
+                    savedQueryAdapter.setQueries(savedQueries);
+                }
+            });
+        });
     }
 
     @Override

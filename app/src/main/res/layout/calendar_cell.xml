@@ -5,15 +5,14 @@
     android:layout_height="80dp"
     android:padding="2dp">
 
-    <LinearLayout
+    <!-- 🚀 LinearLayout에서 FrameLayout으로 변경하여 내부 뷰들이 겹치도록 설정 -->
+    <FrameLayout
         android:id="@+id/highlighterLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:gravity="top"
         android:alpha="0.5">
-        <!-- Colored views will be added here -->
-    </LinearLayout>
+        <!-- 동적으로 추가되는 배경(redView)과 테두리(selectView)가 여기에 순서대로 겹쳐 쌓입니다 -->
+    </FrameLayout>
 
     <TextView
         android:id="@+id/dayText"

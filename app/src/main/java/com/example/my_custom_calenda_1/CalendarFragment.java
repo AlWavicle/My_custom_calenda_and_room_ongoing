@@ -84,7 +84,7 @@ public class CalendarFragment extends Fragment {
         // native) LocalDate.now(): 현재 시스템의 날짜 정보를 가져오는 정적 함수입니다.
         local_selectedDate = LocalDate.now();
 
-        // 🚀 ViewModel 초기화
+        // 🚀 ViewModel 초기화??
         viewModel = new androidx.lifecycle.ViewModelProvider(requireActivity()).get(SharedViewModel.class);
 
         setRecyclerView();
@@ -240,6 +240,7 @@ public class CalendarFragment extends Fragment {
                                    ArrayList<SelectSendCalenderModel> eventsOnDay,
                                    ArrayList<Integer> eventsIndex) {
 
+                OuterCalendarAdapter.clicksel=date;
                 // 1. 다중 클릭(순환)을 위한 clickNum 처리
                 if (local_selectedDate != null && local_selectedDate.equals(date)) {
                     nums++;
@@ -247,12 +248,13 @@ public class CalendarFragment extends Fragment {
                     nums = 1;
                 }
                 local_selectedDate = date;
+                OuterCalendarAdapter.clicksel = date; // 🚀 클릭한 날짜 저장
 
                 // 2. 🚀 [4단계 선택 로직] 적용
                 OuterCalendarAdapter currentAdapter = (OuterCalendarAdapter) find_cal_num_recyclerView.getAdapter();
                 if (currentAdapter != null) {
                     currentAdapter.selectionStep = (currentAdapter.selectionStep % 4) + 1;
-                    
+
                     if (currentAdapter.selectionStep == 1) {
                         currentAdapter.seldate.clear();
                         currentAdapter.seldate.add(date);
@@ -266,6 +268,7 @@ public class CalendarFragment extends Fragment {
                         currentAdapter.selectionStep = 0;
                     }
                     // 🚀 원래 클릭 로직 복구: setRecyclerView() 호출 대신 notifyDataSetChanged()만 사용
+
                     currentAdapter.notifyDataSetChanged(); 
                 }
 

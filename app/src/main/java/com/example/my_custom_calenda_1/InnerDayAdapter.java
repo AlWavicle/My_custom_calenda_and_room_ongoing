@@ -4,6 +4,7 @@ import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -46,15 +47,36 @@ public class InnerDayAdapter extends RecyclerView.Adapter<InnerDayAdapter.DayVie
 
         if (date != null) {
             holder.dayText.setText(String.valueOf(date.getDayOfMonth()));
+            if (date.equals(LocalDate.now())) {
+                View todayIndicator = new View(holder.itemView.getContext());
+                todayIndicator.setLayoutParams(new FrameLayout.LayoutParams(80, 80));
+                todayIndicator.setBackgroundResource(R.drawable.selectcell_view); // Assuming a distinct drawable for today
+                holder.highlighterLayout.addView(todayIndicator);
+            }
 
-            // 1. [사용자 선택 하이라이트] 빨간색 배경 추가
+
+            if (date.equals(OuterCalendarAdapter.clicksel)){
+                // [레이어 2] 그 위에 검은 테두리(selectcell_view)를 얹어서 중첩시킵니다.
+                View selectView = new View(holder.itemView.getContext());
+                selectView.setLayoutParams(new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                selectView.setBackgroundResource(R.drawable.selectcell_view);
+                holder.highlighterLayout.addView(selectView); // 빨간 배경 위에 겹쳐서 추가됨
+            }
+
+
+
+// 🚀 효과 중첩 구현 영역
             if (seldate != null && seldate.contains(date)) {
+
+                // [레이어 1] 먼저 투명한 빨간색 배경을 밑에 깝니다.
                 View redView = new View(holder.itemView.getContext());
-                redView.setLayoutParams(new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT, 
+                redView.setLayoutParams(new FrameLayout.LayoutParams( // LinearLayout에서 FrameLayout으로 변경
+                        ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT));
-                redView.setBackgroundColor(Color.parseColor("#44FF0000")); // 투명한 빨간색
-                holder.highlighterLayout.addView(redView);
+                redView.setBackgroundColor(Color.parseColor("#44FF0000"));
+                holder.highlighterLayout.addView(redView); // 바닥층에 추가됨
+
             }
 
             // 2. [일정 마커] 기존 로직
@@ -97,7 +119,7 @@ public class InnerDayAdapter extends RecyclerView.Adapter<InnerDayAdapter.DayVie
 
     static class DayViewHolder extends RecyclerView.ViewHolder {
         TextView dayText;
-        LinearLayout highlighterLayout;
+        FrameLayout highlighterLayout;
         public DayViewHolder(View v) {
             super(v);
             dayText = v.findViewById(R.id.dayText);

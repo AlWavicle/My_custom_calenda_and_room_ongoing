@@ -128,6 +128,7 @@
         android:padding="10dp"
         android:text="Selected Date Info"
         android:textAlignment="center"
+        android:textIsSelectable="true"
         android:textSize="16sp" />
 
     <EditText

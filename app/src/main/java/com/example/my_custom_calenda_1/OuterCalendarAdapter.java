@@ -1,5 +1,10 @@
 package com.example.my_custom_calenda_1;
 
+import android.graphics.Color;
+import android.text.Spannable;
+import android.text.SpannableStringBuilder;
+import android.text.style.BackgroundColorSpan;
+import android.text.style.ForegroundColorSpan;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,6 +27,8 @@ public class OuterCalendarAdapter extends RecyclerView.Adapter<RecyclerView.View
     public static ArrayList<SelectSendCalenderModel> sSCModel;
     public List<LocalDate> seldate = new ArrayList<>(); // 🚀 선택된 날짜 관리 추가
     public int selectionStep = 0; // 🚀 4단계 순환을 위한 변수 추가
+
+    public static LocalDate clicksel = null;
 
     public OuterCalendarAdapter(List<Object> items, InnerDayAdapter.OnDayClickListener listener) {
         this.items = items;
@@ -61,19 +68,43 @@ public class OuterCalendarAdapter extends RecyclerView.Adapter<RecyclerView.View
 
         } else if (holder instanceof DetailViewHolder) {
             DetailViewHolder detailHolder = (DetailViewHolder) holder;
-            // items.get(position)은 showDetail에서 넘겨준 ArrayList<SelectSendCalenderModel>임
             ArrayList<SelectSendCalenderModel> events = (ArrayList<SelectSendCalenderModel>) items.get(position);
 
             if (events != null && !events.isEmpty()) {
-                StringBuilder titleBuilder = new StringBuilder();
-                StringBuilder contentBuilder = new StringBuilder();
+                SpannableStringBuilder ssb = new SpannableStringBuilder();
 
-                for (SelectSendCalenderModel event : events) {
-                    titleBuilder.append("ID:  ").append(event.getId()).append("  ").append(event.getName()).append("\n");
+                for (int i = 0; i < events.size(); i++) {
+                    SelectSendCalenderModel event = events.get(i);
+                    String tag = "";
+                    int type = event.isWithin(OuterCalendarAdapter.clicksel);
+
+                    if (type == 1) tag = "[시작]";
+                    else if (type == 2) tag = "[기한]";
+                    else if (type == 3) tag = "[일정]";
+                    else tag = "[기간]";
+
+                    int start = ssb.length();
+                    ssb.append(tag);
+                    int end = ssb.length();
+
+                    // [] 태그에 배경색 하이라이트 (이벤트 컬러) 및 글자색 설정
+                    int eventColor = event.getColor();
+                    if (eventColor == 0) eventColor = Color.GRAY;
+                    
+                    ssb.setSpan(new BackgroundColorSpan(eventColor), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    // 배경색에 따라 글자색 반전 (간단히 흰색)
+                    ssb.setSpan(new ForegroundColorSpan(Color.WHITE), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                    ssb.append(" ID: ").append(String.valueOf(event.getId()))
+                       .append("  ").append(event.getName());
+                    
+                    if (i < events.size() - 1) {
+                        ssb.append("\n");
+                    }
                 }
 
-                detailHolder.detailTitle.setText(titleBuilder.toString().trim());
-                detailHolder.detailContent.setText(contentBuilder.toString().trim());
+                detailHolder.detailTitle.setText(ssb);
+                detailHolder.detailContent.setText(""); // contentBuilder 내용은 title에 합침
             } else {
                 detailHolder.detailTitle.setText("일정이 없습니다.");
                 detailHolder.detailContent.setText("");
