@@ -2,6 +2,7 @@ package com.example.my_custom_calenda_1;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -45,6 +46,9 @@ public class WeekEventView extends View {
         for (WeekEvent event : eventList) {
             paint.setColor(event.color);
 
+            // 🚀 선택된 일정인 경우 외곽선을 먼저 그림 (흰색 + 검은색)
+            boolean isSelected = (OuterCalendarAdapter.selectedEventId != -1 && OuterCalendarAdapter.selectedEventId == event.id);
+
             // 막대 세로 위치 (날짜 가리지 않게 아래로 조정 및 얇게)
             float barHeight = 7f; 
             float barSpacing = 4f;
@@ -59,7 +63,7 @@ public class WeekEventView extends View {
             if (event.type == 3) {
                 // 🚀 당일: 동그라미 (2개 이상 시 절반 겹치기 및 날짜 텍스트 높이 배치)
                 int dayIdx = event.startDayIndex;
-                float radius = 4f * density; // 크기 소폭 확대
+                float radius = 7f * density; // 크기 소폭 확대
                 
                 // 날짜 텍스트 위치 (보통 상단에서 10-20dp 지점)
                 float textCenterX = dayIdx * cellWidth + cellWidth / 2f;
@@ -72,11 +76,21 @@ public class WeekEventView extends View {
                 float offsetX = type3Counts[dayIdx] * radius; 
                 float centerX = startX + offsetX;
                 
+                if (isSelected) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(4f);
+                    paint.setColor(Color.BLACK);
+                    canvas.drawCircle(centerX, centerY, radius + 2f, paint);
+                    paint.setColor(Color.WHITE);
+                    canvas.drawCircle(centerX, centerY, radius + 1f, paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(event.color);
+                }
+                
                 canvas.drawCircle(centerX, centerY, radius, paint);
                 type3Counts[dayIdx]++;
             } else if (event.type == 1) {
                 // 🚀 시작일만 있음 (Type 1): 왼쪽 끝 상단 배치
-                // 전역 lane 대신 이 날짜의 Type 1 중 몇 번째인지(local index)를 사용
                 int dayIdx = event.startDayIndex;
                 float triSize = 25f;
                 float baseX = dayIdx * cellWidth;
@@ -89,12 +103,15 @@ public class WeekEventView extends View {
                 path.lineTo(targetX + triSize, targetY); // 상변
                 path.lineTo(targetX, targetY + triSize); // 높이
                 path.close();
-                canvas.drawPath(path, paint);
                 
-                type1Counts[dayIdx]++; // 카운트 증가
+                if (isSelected) {
+                    drawPathSelection(canvas, path);
+                }
+                
+                canvas.drawPath(path, paint);
+                type1Counts[dayIdx]++;
             } else if (event.type == 2) {
                 // 🚀 종료일만 있음 (Type 2): 오른쪽 끝 하단 배치
-                // 전역 lane 대신 이 날짜의 Type 2 중 몇 번째인지(local index)를 사용
                 int dayIdx = event.endDayIndex;
                 float triSize = 25f; 
                 float baseX = (dayIdx + 1) * cellWidth;
@@ -107,14 +124,39 @@ public class WeekEventView extends View {
                 path.lineTo(targetX - triSize, targetY); // 밑변
                 path.lineTo(targetX, targetY - triSize); // 높이
                 path.close();
-                canvas.drawPath(path, paint);
                 
-                type2Counts[dayIdx]++; // 카운트 증가
+                if (isSelected) {
+                    drawPathSelection(canvas, path);
+                }
+                
+                canvas.drawPath(path, paint);
+                type2Counts[dayIdx]++;
             } else {
                 // 기간 일정: 막대
+                if (isSelected) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(4f);
+                    paint.setColor(Color.BLACK);
+                    canvas.drawRoundRect(new RectF(left - 4f, barTop - 4f, right + 4f, barBottom + 4f), 12f, 12f, paint);
+                    paint.setColor(Color.WHITE);
+                    canvas.drawRoundRect(new RectF(left - 1f, barTop - 1f, right + 1f, barBottom + 1f), 5f, 5f, paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(event.color);
+                }
                 RectF rect = new RectF(left, barTop, right, barBottom);
                 canvas.drawRoundRect(rect, 4f, 4f, paint);
             }
         }
+    }
+
+    private void drawPathSelection(Canvas canvas, android.graphics.Path path) {
+        Paint selectionPaint = new Paint(paint);
+        selectionPaint.setStyle(Paint.Style.STROKE);
+        selectionPaint.setStrokeWidth(20f);
+        selectionPaint.setColor(Color.BLACK);
+        canvas.drawPath(path, selectionPaint);
+        selectionPaint.setStrokeWidth(15f);
+        selectionPaint.setColor(Color.WHITE);
+        canvas.drawPath(path, selectionPaint);
     }
 }

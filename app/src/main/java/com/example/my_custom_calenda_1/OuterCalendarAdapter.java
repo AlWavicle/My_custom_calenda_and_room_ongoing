@@ -29,6 +29,7 @@ public class OuterCalendarAdapter extends RecyclerView.Adapter<RecyclerView.View
     public int selectionStep = 0; // 🚀 4단계 순환을 위한 변수 추가
 
     public static LocalDate clicksel = null;
+    public static int selectedEventId = -1; // 🚀 현재 선택된 일정 ID 저장
 
     public OuterCalendarAdapter(List<Object> items, InnerDayAdapter.OnDayClickListener listener) {
         this.items = items;
@@ -71,43 +72,32 @@ public class OuterCalendarAdapter extends RecyclerView.Adapter<RecyclerView.View
             ArrayList<SelectSendCalenderModel> events = (ArrayList<SelectSendCalenderModel>) items.get(position);
 
             if (events != null && !events.isEmpty()) {
-                SpannableStringBuilder ssb = new SpannableStringBuilder();
-
-                for (int i = 0; i < events.size(); i++) {
-                    SelectSendCalenderModel event = events.get(i);
-                    String tag = "";
-                    int type = event.isWithin(OuterCalendarAdapter.clicksel);
-
-                    if (type == 1) tag = "[시작]";
-                    else if (type == 2) tag = "[기한]";
-                    else if (type == 3) tag = "[일정]";
-                    else tag = "[기간]";
-
-                    int start = ssb.length();
-                    ssb.append(tag);
-                    int end = ssb.length();
-
-                    // [] 태그에 배경색 하이라이트 (이벤트 컬러) 및 글자색 설정
-                    int eventColor = event.getColor();
-                    if (eventColor == 0) eventColor = Color.GRAY;
-                    
-                    ssb.setSpan(new BackgroundColorSpan(eventColor), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-                    // 배경색에 따라 글자색 반전 (간단히 흰색)
-                    ssb.setSpan(new ForegroundColorSpan(Color.WHITE), start, end, Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-
-                    ssb.append(" ID: ").append(String.valueOf(event.getId()))
-                       .append("  ").append(event.getName());
-                    
-                    if (i < events.size() - 1) {
-                        ssb.append("\n");
+                EventDetailAdapter detailAdapter = new EventDetailAdapter(events, OuterCalendarAdapter.clicksel, new EventDetailAdapter.OnEventEditListener() {
+                    @Override
+                    public void onEventEdit(SelectSendCalenderModel event) {
+                        if (dayClickListener != null) {
+                            dayClickListener.onEventEdit(event);
+                        }
                     }
-                }
 
-                detailHolder.detailTitle.setText(ssb);
-                detailHolder.detailContent.setText(""); // contentBuilder 내용은 title에 합침
-            } else {
-                detailHolder.detailTitle.setText("일정이 없습니다.");
-                detailHolder.detailContent.setText("");
+                    @Override
+                    public void onCheckChanged(SelectSendCalenderModel event, boolean isChecked) {
+                        if (dayClickListener != null) {
+                            dayClickListener.onCheckChanged(event, isChecked);
+                        }
+                    }
+
+                    @Override
+                    public void onEventSelected(SelectSendCalenderModel event) {
+                        // 🚀 디테일뷰 아이템 선택 시 달력 전체를 다시 그려서 하이라이트 반영
+                        if (dayClickListener != null) {
+                            dayClickListener.onEventSelected(event);
+                        }
+                        notifyDataSetChanged();
+                    }
+                });
+                detailHolder.recyclerView.setLayoutManager(new androidx.recyclerview.widget.LinearLayoutManager(holder.itemView.getContext()));
+                detailHolder.recyclerView.setAdapter(detailAdapter);
             }
         }
     }
@@ -152,12 +142,10 @@ public class OuterCalendarAdapter extends RecyclerView.Adapter<RecyclerView.View
         }
     }
     static class DetailViewHolder extends RecyclerView.ViewHolder {
-        TextView detailTitle;
-        TextView detailContent;
+        RecyclerView recyclerView;
         public DetailViewHolder(View v) {
             super(v);
-            detailTitle = v.findViewById(R.id.detailTitle);
-            detailContent = v.findViewById(R.id.detailContent);
+            recyclerView = v.findViewById(R.id.detail_recycler_view);
         }
     }
 }

@@ -12,14 +12,12 @@
         android:layout_marginBottom="20dp"
         android:orientation="horizontal">
 
-        <ImageButton
+        <Button
             android:id="@+id/pre_btn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@drawable/ic_launcher_background"/>
-
-
+            android:text="◀"/>
         <TextView
             android:id="@+id/yearmonthText"
             android:layout_width="0dp"
@@ -28,12 +26,12 @@
             android:textAlignment="center"
             android:textSize="25sp"
             android:textColor="@android:color/black"/>
-        <ImageButton
+        <Button
             android:id="@+id/next_btn"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:src="@drawable/ic_launcher_background"/>
+            android:text="▶"/>/>
     </LinearLayout>
 
     <LinearLayout
@@ -125,7 +123,7 @@
         android:id="@+id/pre_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="10dp"
+        android:padding="1dp"
         android:text="Selected Date Info"
         android:textAlignment="center"
         android:textIsSelectable="true"
@@ -135,7 +133,7 @@
         android:id="@+id/schedule_editText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="10dp"
+        android:layout_margin="5dp"
         android:hint="Enter schedule"
         android:inputType="text" />
     <LinearLayout
@@ -147,8 +145,12 @@
             android:id="@+id/save_btn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginEnd="10dp"
+            android:layout_marginStart="5dp"
+            android:layout_marginEnd="5dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
             android:text="Save" />
         <Button
             android:id="@+id/remove_btn"
@@ -156,6 +158,11 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+
             android:text="Remove" />
         <Button
             android:id="@+id/reset_btn"
@@ -163,7 +170,11 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:layout_marginEnd="10dp"
-            android:text="reset" />
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minHeight="0dp"
+            android:minWidth="0dp"
+            android:text="Refresh" />
     </LinearLayout>
 
 </LinearLayout>

@@ -13,20 +13,25 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main); // ViewPager2 하나만 있는 레이아웃
+        setContentView(R.layout.activity_main);
 
         ViewPager2 viewPager = findViewById(R.id.viewPager);
 
-        // ViewPager2에 3개의 프래그먼트를 공급해주는 어댑터 설정
         MainPagerAdapter pagerAdapter = new MainPagerAdapter(this);
         viewPager.setAdapter(pagerAdapter);
+        viewPager.setOffscreenPageLimit(4);
 
-        // 팁: 스와이프 할 때 양쪽 페이지가 메모리에서 완전히 삭제되는 것을 방지하여
-        // 로딩 지연을 줄이고 스크롤 위치 등을 자연스럽게 유지해 줍니다.
-        viewPager.setOffscreenPageLimit(2);
+        // 🚀 Index 2 (CalendarFragment)에서 시작하도록 설정
+        viewPager.setCurrentItem(2, false);
+
+        SharedViewModel viewModel = new androidx.lifecycle.ViewModelProvider(this).get(SharedViewModel.class);
+        viewModel.getNavigateToPage().observe(this, pageIndex -> {
+            if (pageIndex != null) {
+                viewPager.setCurrentItem(pageIndex, true);
+            }
+        });
     }
 
-    // ViewPager2 전용 어댑터 클래스 (내부 클래스로 생성)
     private static class MainPagerAdapter extends FragmentStateAdapter {
         public MainPagerAdapter(@NonNull AppCompatActivity fragmentActivity) {
             super(fragmentActivity);
@@ -35,14 +40,17 @@ public class MainActivity extends AppCompatActivity {
         @NonNull
         @Override
         public Fragment createFragment(int position) {
-            // 위치(position)에 따라 보여줄 페이지(Fragment)를 반환
             switch (position) {
                 case 0:
-                    return new CalendarFragment(); // 1페이지: 기존 달력
+                    return new NullDateFragment(); // 🚀 Index 0
                 case 1:
-                    return new QueryFragment();    // 2페이지: 쿼리 작성
+                    return new ContentFragment();  // 🚀 Index 1
                 case 2:
-                    return new ResultFragment();   // 3페이지: 결과 화면
+                    return new CalendarFragment(); // 🚀 Index 2 (시작 화면)
+                case 3:
+                    return new QueryFragment();
+                case 4:
+                    return new ResultFragment();
                 default:
                     return new CalendarFragment();
             }
@@ -50,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return 3; // 총 페이지 수
+            return 5;
         }
     }
 }

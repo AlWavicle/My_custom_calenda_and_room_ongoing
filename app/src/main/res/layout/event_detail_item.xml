@@ -2,25 +2,12 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#EEF0FF"
-    android:orientation="vertical"
-    android:padding="12dp">
+    android:background="#EEF0FF">
 
-    <TextView
-        android:id="@+id/detailTitle"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/detail_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="#333333"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textIsSelectable="true" />
-
-    <TextView
-        android:id="@+id/detailContent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:textColor="#666666"
-        android:textSize="14sp"
-        android:textIsSelectable="true" />
+        android:padding="4dp"
+        android:nestedScrollingEnabled="false" />
 </LinearLayout>

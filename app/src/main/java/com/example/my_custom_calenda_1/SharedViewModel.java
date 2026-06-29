@@ -8,6 +8,7 @@ import android.os.Looper;
 
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +33,39 @@ public class SharedViewModel extends ViewModel {
 
     // 🚀 SQLite SELECT 검색 결과를 담는 LiveData 추가
     private final MutableLiveData<List<SelectSendCalenderModel>> filteredEvents = new MutableLiveData<>();
+
+    // 🚀 현재 선택된 일정 (ContentFragment 연동용)
+    private final MutableLiveData<SelectSendCalenderModel> selectedEvent = new MutableLiveData<>();
+
+    // 🚀 달력에서 선택 중인 날짜 범위 (시작일, 종료일)
+    private final MutableLiveData<List<LocalDate>> calendarSelection = new MutableLiveData<>();
+
+    // 🚀 페이지 이동 명령 (0: Content, 1: Calendar 등)
+    private final MutableLiveData<Integer> navigateToPage = new MutableLiveData<>();
+
+    public MutableLiveData<SelectSendCalenderModel> getSelectedEvent() {
+        return selectedEvent;
+    }
+
+    public void setSelectedEvent(SelectSendCalenderModel event) {
+        selectedEvent.setValue(event);
+    }
+
+    public MutableLiveData<List<LocalDate>> getCalendarSelection() {
+        return calendarSelection;
+    }
+
+    public void setCalendarSelection(List<LocalDate> selection) {
+        calendarSelection.setValue(selection);
+    }
+
+    public MutableLiveData<Integer> getNavigateToPage() {
+        return navigateToPage;
+    }
+
+    public void navigateTo(int pageIndex) {
+        navigateToPage.setValue(pageIndex);
+    }
 
     public MutableLiveData<List<SelectSendCalenderModel>> getFilteredEvents() {
         return filteredEvents;

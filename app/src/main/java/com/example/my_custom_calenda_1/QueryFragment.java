@@ -1,14 +1,10 @@
 package com.example.my_custom_calenda_1;
 
-
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -36,44 +32,35 @@ import java.util.concurrent.Executors;
 
 public class QueryFragment extends Fragment {
 
-
-
-    // 데이터베이스 이름 정의 (Room에서 사용하는 이름과 동일하게 맞춤)
     private static final String DB_NAME = "calendar_database";
-
     public static ArrayList<Object> sendArrayListResult = new ArrayList<>();
-
     public static ArrayList<String> stringEvent = new ArrayList<String>();
 
     private SharedViewModel viewModel;
     private EditText queryEditText, dateconversionEditText;
     private Button find_selectquery_btn, find_insertquery_btn, prequery_btn, nextquery_btn, convertDateBtn;
-    
-    // 날짜 변환용 포맷터
-    // 2자리 년도(yy)와 4자리 년도(yyyy)를 모두 지원하도록 개선
-    private static final DateTimeFormatter dateformatter = new DateTimeFormatterBuilder()
-            .appendOptional(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            .appendOptional(DateTimeFormatter.ofPattern("yyyy-M-d"))
-            .appendOptional(DateTimeFormatter.ofPattern("yy-MM-dd"))   // 26-11-01 형식 지원
-            .appendOptional(DateTimeFormatter.ofPattern("yy-M-d"))     // 26-11-1 형식 지원
-            .appendOptional(DateTimeFormatter.ofPattern("yyyy/M/d"))
-            .appendOptional(DateTimeFormatter.ofPattern("yy/M/d"))     // 26/11/1 형식 지원
-            .appendOptional(DateTimeFormatter.ofPattern("yyyy년MM월dd일"))
-            .appendOptional(DateTimeFormatter.ofPattern("yyyy년M월d일"))
-            .appendOptional(DateTimeFormatter.ofPattern("yy년MM월dd일")) // 26년11월01일 형식 지원
-            .appendOptional(DateTimeFormatter.ofPattern("yy년M월d일"))   // 26년11월1일 형식 지원
-            .appendOptional(DateTimeFormatter.ofPattern("yyyyMMdd"))
-            .appendOptional(DateTimeFormatter.ofPattern("yyMMdd"))
-            .toFormatter();
+    private TextView find_columview;
+    private Button savequery_btn, removequery_btn;
+    private RecyclerView savedquery_recyclerView;
+    private SavedQueryAdapter savedQueryAdapter;
 
     private Button equel_btn, open_parenthesis_btn, close_parenthesis_btn, Percent_btn, Asterisk_btn, Apostrophe_btn;
     private Button Lessthansign_btn, greaterthan_btn, underscore_btn, plus_btn, minus_btn, slesh_btn, past_btn;
 
-    private TextView find_columview;
-    private Button savequery_btn;
-    private Button removequery_btn;
-    private RecyclerView savedquery_recyclerView;
-    private SavedQueryAdapter savedQueryAdapter;
+    private static final DateTimeFormatter dateformatter = new DateTimeFormatterBuilder()
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy-M-d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy-MM-dd"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy-M-d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy/M/d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy/M/d"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy년MM월dd일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyy년M월d일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy년MM월dd일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yy년M월d일"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyyyMMdd"))
+            .appendOptional(DateTimeFormatter.ofPattern("yyMMdd"))
+            .toFormatter();
 
     @Nullable
     @Override
@@ -88,7 +75,7 @@ public class QueryFragment extends Fragment {
         removequery_btn = view.findViewById(R.id.removequery_btn);
         savedquery_recyclerView = view.findViewById(R.id.savedquery);
         find_columview = view.findViewById(R.id.columview);
-        
+
         dateconversionEditText = view.findViewById(R.id.dateconversionEditText);
         convertDateBtn = view.findViewById(R.id.convertDateBtn);
 
@@ -98,14 +85,15 @@ public class QueryFragment extends Fragment {
         Percent_btn = view.findViewById(R.id.Percent_btn);
         Asterisk_btn = view.findViewById(R.id.Asterisk_btn);
         Apostrophe_btn = view.findViewById(R.id.Apostrophe_btn);
-
         Lessthansign_btn = view.findViewById(R.id.Lessthansign);
-        greaterthan_btn = view.findViewById(R.id.openparenthesis_btn); // XML ID가 openparenthesis_btn임
+        greaterthan_btn = view.findViewById(R.id.greaterthan_btn);
         underscore_btn = view.findViewById(R.id.underscore_btn);
         plus_btn = view.findViewById(R.id.plus_btn);
         minus_btn = view.findViewById(R.id.minus_btn);
         slesh_btn = view.findViewById(R.id.slesh_btn);
         past_btn = view.findViewById(R.id.past_btn);
+
+        viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
 
         setupSymbolButton(equel_btn, "=");
         setupSymbolButton(open_parenthesis_btn, "(");
@@ -113,7 +101,6 @@ public class QueryFragment extends Fragment {
         setupSymbolButton(Percent_btn, "%");
         setupSymbolButton(Asterisk_btn, "*");
         setupSymbolButton(Apostrophe_btn, "'");
-
         setupSymbolButton(Lessthansign_btn, "<");
         setupSymbolButton(greaterthan_btn, ">");
         setupSymbolButton(underscore_btn, "_");
@@ -121,16 +108,51 @@ public class QueryFragment extends Fragment {
         setupSymbolButton(minus_btn, "-");
         setupSymbolButton(slesh_btn, "/");
 
-        // SavedQuery 리사이클러뷰 설정
+        if (past_btn != null) {
+            past_btn.setOnClickListener(v -> {
+                ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null && clipboard.hasPrimaryClip()) {
+                    ClipData clip = clipboard.getPrimaryClip();
+                    if (clip != null && clip.getItemCount() > 0) {
+                        CharSequence text = clip.getItemAt(0).getText();
+                        if (text != null) insertAtCursor(text.toString());
+                    }
+                }
+            });
+        }
+
+        if (dateconversionEditText != null) {
+            dateconversionEditText.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                    String input = dateconversionEditText.getText().toString().trim().replaceAll(" ", "");
+                    try {
+                        LocalDate date = LocalDate.parse(input, dateformatter);
+                        dateconversionEditText.setText(date.toString());
+                        dateconversionEditText.setSelection(date.toString().length());
+                    } catch (Exception e) {
+                        Toast.makeText(requireContext(), "날짜 형식이 올바르지 않습니다.", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
+                }
+                return false;
+            });
+        }
+
+        if (convertDateBtn != null) {
+            convertDateBtn.setOnClickListener(v -> {
+                String date = dateconversionEditText.getText().toString().trim();
+                if (!date.isEmpty()) insertAtCursor(date);
+            });
+        }
+
         savedQueryAdapter = new SavedQueryAdapter(new SavedQueryAdapter.OnQueryClickListener() {
             @Override
             public void onQueryClick(SavedQuery savedQuery) {
-                queryEditText.setText(savedQuery.getQuery());
+                // 🚀 클릭 시 에딧텍스트에 적용하는 기능 제거 (선택 테두리 유지를 위해 리스너는 유지)
             }
 
             @Override
             public void onQueryLongClick(String query) {
-                // 🚀 롱클릭 시 클립보드에 복사
                 ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("Saved Query", query);
                 clipboard.setPrimaryClip(clip);
@@ -141,7 +163,6 @@ public class QueryFragment extends Fragment {
         savedquery_recyclerView.setAdapter(savedQueryAdapter);
         refreshSavedQueries();
 
-        // savequery 버튼 클릭 처리
         if (savequery_btn != null) {
             savequery_btn.setOnClickListener(v -> {
                 String currentQuery = queryEditText.getText().toString().trim();
@@ -157,7 +178,6 @@ public class QueryFragment extends Fragment {
             });
         }
 
-        // removequery 버튼 클릭 처리
         if (removequery_btn != null) {
             removequery_btn.setOnClickListener(v -> {
                 SavedQuery selected = savedQueryAdapter.getSelectedQuery();
@@ -175,393 +195,83 @@ public class QueryFragment extends Fragment {
             });
         }
 
-        // 1. 날짜 변환 에딧텍스트 엔터 처리
-        if (dateconversionEditText != null) {
-            // 엔터 시 줄바꿈 방지를 위해 싱글라인 설정 및 키보드 엔터 액션 설정
-            dateconversionEditText.setSingleLine(true);
-            dateconversionEditText.setImeOptions(EditorInfo.IME_ACTION_DONE);
-
-            dateconversionEditText.setOnKeyListener((v, keyCode, event) -> {
-                // 엔터 키를 눌렀을 때 실행 (ACTION_DOWN)
-                if (event.getAction() == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
-                    String input = dateconversionEditText.getText().toString().trim();
-                    
-                    // "202 6 년 5월 6 일 " 같이 띄어쓰기가 섞인 경우를 대비해 
-                    // 숫자/년/월/일/기호 외의 모든 공백을 제거
-                    String cleanInput = input.replaceAll(" ", "");
-                    
-                    try {
-                        // 텍스트를 LocalDate로 변환 시도
-                        LocalDate parsedDate = LocalDate.parse(cleanInput, dateformatter);
-                        // 다시 표준 포맷(yyyy-MM-dd)의 문자열로 변환
-                        String result = parsedDate.toString();
-                        // 에딧텍스트 업데이트
-                        dateconversionEditText.setText(result);
-                        dateconversionEditText.setSelection(result.length()); // 커서를 끝으로
-                    } catch (Exception e) {
-                        Toast.makeText(requireContext(), "날짜 형식이 올바르지 않습니다.", Toast.LENGTH_SHORT).show();
-                    }
-                    return true; // 이벤트 소비 (줄바꿈 방지)
-                }
-                return false;
-            });
-        }
-
-        // removequery 버튼 클릭 처리
-        if (removequery_btn != null) {
-            removequery_btn.setOnClickListener(v -> {
-                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
-                if (selected != null) {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
-                            refreshSavedQueries();
-                        });
-                    });
-                } else {
-                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // 2. 컨버트 버튼 클릭 처리 (현재 커서 위치에 붙여넣기)
-        if (convertDateBtn != null) {
-            convertDateBtn.setOnClickListener(v -> {
-                String dateStr = dateconversionEditText.getText().toString().trim();
-                if (!dateStr.isEmpty()) {
-                    int start = Math.max(queryEditText.getSelectionStart(), 0);
-                    int end = Math.max(queryEditText.getSelectionEnd(), 0);
-                    queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
-                            dateStr, 0, dateStr.length());
-                }
-            });
-        }
-
-        // removequery 버튼 클릭 처리
-        if (removequery_btn != null) {
-            removequery_btn.setOnClickListener(v -> {
-                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
-                if (selected != null) {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
-                            refreshSavedQueries();
-                        });
-                    });
-                } else {
-                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // 붙여넣기(Paste) 버튼 기능 구현
-        if (past_btn != null) {
-            past_btn.setOnClickListener(v -> {
-                ClipboardManager clipboard = (ClipboardManager) requireContext().getSystemService(Context.CLIPBOARD_SERVICE);
-                if (clipboard != null && clipboard.hasPrimaryClip()) {
-                    ClipData clip = clipboard.getPrimaryClip();
-                    if (clip != null && clip.getItemCount() > 0) {
-                        CharSequence pasteData = clip.getItemAt(0).getText();
-                        if (pasteData != null) {
-                            int start = Math.max(queryEditText.getSelectionStart(), 0);
-                            int end = Math.max(queryEditText.getSelectionEnd(), 0);
-                            queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
-                                    pasteData, 0, pasteData.length());
-                        }
-                    }
-                } else {
-                    Toast.makeText(requireContext(), "클립보드가 비어있습니다.", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // removequery 버튼 클릭 처리
-        if (removequery_btn != null) {
-            removequery_btn.setOnClickListener(v -> {
-                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
-                if (selected != null) {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
-                            refreshSavedQueries();
-                        });
-                    });
-                } else {
-                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
-                }
-            });
-        }
-
-        // Activity 범위의 SharedViewModel 가져오기 (3개 페이지가 공유함)
-        viewModel = new ViewModelProvider(requireActivity()).get(SharedViewModel.class);
-
-        // 이전 쿼리 버튼 클릭
         prequery_btn.setOnClickListener(v -> {
             String preQuery = viewModel.getPreviousQuery();
-            if (preQuery != null) {
-                queryEditText.setText(preQuery);
-            } else {
-                Toast.makeText(requireContext(), "이전 기록이 없습니다.", Toast.LENGTH_SHORT).show();
-            }
+            if (preQuery != null) queryEditText.setText(preQuery);
+            else Toast.makeText(requireContext(), "이전 기록이 없습니다.", Toast.LENGTH_SHORT).show();
         });
 
-
-        // 다음 쿼리 버튼 클릭
         nextquery_btn.setOnClickListener(v -> {
             String nextQuery = viewModel.getNextQuery();
-            if (nextQuery != null) {
-                queryEditText.setText(nextQuery);
-            }
+            if (nextQuery != null) queryEditText.setText(nextQuery);
         });
 
-        // ViewModel에 저장된 값을 가져와서 EditText에 복원 (화면 스와이프 복귀 시)
         viewModel.getQueryText().observe(getViewLifecycleOwner(), text -> {
             if (!queryEditText.getText().toString().equals(text)) {
                 queryEditText.setText(text);
             }
         });
-        //String query = queryEditText.getText().toString();
 
-
-        find_insertquery_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // 실행할 날것의 인서트 쿼리문
-                String query = queryEditText.getText().toString();
-                final String rawInsertQuery = query;
-
-                // 쿼리 기록에 추가
-                viewModel.addQueryToHistory(rawInsertQuery);
-
-                viewModel.executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-
-
-                        try {
-                            // 🚀 [수정] ViewModel의 헬퍼 메서드 사용 (이미 열려있으면 그대로 사용)
-                            viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
-
-                            // 1. 트랜잭션 시작
-                            viewModel.mDb.execSQL("BEGIN TRANSACTION;");
-
-                            // 쿼리 실행
-                            viewModel.mDb.execSQL(rawInsertQuery);
-
-                            // 🚀 [수정] 자동 COMMIT 제거 (ResultFragment에서 수동 커밋하도록 유도)
-                            // viewModel.mDb.execSQL("COMMIT;");
-
-                            viewModel.handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toast.makeText(requireContext(), "쿼리 실행 완료! 결과 페이지에서 [커밋]을 눌러야 저장됩니다.", Toast.LENGTH_SHORT).show();
-                                    // 🚀 [수정] ResultFragment로 데이터 전달 (Bundle에 쿼리문 담기)
-                                    viewModel.setResultText("쿼리가 성공적으로 실행되었습니다(트랜잭션 대기 중).\n실행 쿼리: " + rawInsertQuery);
-
-                                    Bundle bundle = new Bundle();
-                                    bundle.putString("QUERY_DATA", rawInsertQuery);
-                                    getParentFragmentManager().setFragmentResult("DATA_KEY", bundle);
-
-                                    getParentFragmentManager().setFragmentResult("QUERY_EXECUTED", new Bundle());
-                                }
-                            });
-                        } catch (Exception e) {
-                            final String errorMessage = e.getMessage();
-                            viewModel.handler.post(() -> {
-                                viewModel.setResultText("에러 발생: " + errorMessage);
-                                Toast.makeText(requireContext(), "쿼리 실패!", Toast.LENGTH_SHORT).show();
-                            });
-                            e.printStackTrace();
-                        } finally {
-                            // 🚀 [수정] 여기서 DB를 닫지 않습니다! (ResultFragment에서 커밋/롤백 후 닫아야 함)
-                            // if (viewModel.mDb != null && viewModel.mDb.isOpen()) viewModel.mDb.close();
-                        }
-                    }
-                });
-            }
+        find_insertquery_btn.setOnClickListener(v -> {
+            String query = queryEditText.getText().toString();
+            viewModel.addQueryToHistory(query);
+            viewModel.executor.execute(() -> {
+                try {
+                    viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
+                    viewModel.mDb.execSQL("BEGIN TRANSACTION;");
+                    viewModel.mDb.execSQL(query);
+                    viewModel.handler.post(() -> {
+                        Toast.makeText(requireContext(), "쿼리 실행 완료! 커밋을 눌러주세요.", Toast.LENGTH_SHORT).show();
+                        viewModel.setResultText("성공: " + query);
+                    });
+                } catch (Exception e) {
+                    viewModel.handler.post(() -> viewModel.setResultText("에러: " + e.getMessage()));
+                }
+            });
         });
 
-        find_selectquery_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // 실행할 날것의 셀렉트 쿼리문
-                String query = queryEditText.getText().toString();
-                final String rawSelectQuery = query;
+        find_selectquery_btn.setOnClickListener(v -> {
+            String query = queryEditText.getText().toString();
+            viewModel.addQueryToHistory(query);
+            viewModel.executor.execute(() -> {
+                Cursor cursor = null;
+                try {
+                    viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
+                    cursor = viewModel.mDb.rawQuery(query, null);
+                    final StringBuilder resultBuilder = new StringBuilder();
+                    if (cursor != null) {
+                        sendArrayListResult.clear();
+                        stringEvent.clear();
+                        String[] columnNames = cursor.getColumnNames();
+                        for (String col : columnNames) {
+                            stringEvent.add(col);
+                            resultBuilder.append("[").append(col).append("] ");
+                        }
+                        resultBuilder.append("\n------------------------------\n");
+                        sendArrayListResult.add(new ArrayList<>(stringEvent));
 
-                // 쿼리 기록에 추가
-                viewModel.addQueryToHistory(rawSelectQuery);
-
-                viewModel.executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        Cursor cursor = null;
-                        try {
-                            // 🚀 [수정] ViewModel의 헬퍼 메서드 사용
-                            viewModel.getOrOpenDatabase(requireContext(), DB_NAME);
-                            cursor = viewModel.mDb.rawQuery(rawSelectQuery, null);
-
-                            final StringBuilder resultBuilder = new StringBuilder();
-                            if (cursor != null) {
-                                // 모든 컬럼 이름을 가져와서 상단에 표시
-                                sendArrayListResult.clear();//이전 내용 지우기
-                                stringEvent.clear();
-                                String[] columnNames = cursor.getColumnNames();
-                                for (String col : columnNames) {
-                                    resultBuilder.append("[     ").append(col).append("     ] ");
-                                    stringEvent.add(col);
-                                }
-
-
-                                sendArrayListResult.add(new ArrayList<>(stringEvent));
-                                Log.d("오호리", sendArrayListResult.toString());
-                                resultBuilder.append("\n------------------------------\n");
-
-                                while (cursor.moveToNext()) {
-                                    stringEvent.clear();
-                                    for (int i = 0; i < cursor.getColumnCount(); i++) {
-                                        resultBuilder.append(cursor.getString(i)).append(" | ");
-                                        stringEvent.add(cursor.getString(i));
-                                    }
-                                    resultBuilder.append("\n");
-                                    sendArrayListResult.add(new ArrayList<>(stringEvent));
-                                }
-                                Log.d("오호리", sendArrayListResult.toString());
-
-
-
-
+                        while (cursor.moveToNext()) {
+                            stringEvent.clear();
+                            for (int i = 0; i < cursor.getColumnCount(); i++) {
+                                String val = cursor.getString(i);
+                                stringEvent.add(val);
+                                resultBuilder.append(val).append(" | ");
                             }
-
-                            // 최종 결과 문자열 생성
-                            String tempResult = resultBuilder.toString().trim();
-                            if (tempResult.isEmpty()) {
-                                tempResult = "조회된 데이터가 없습니다.";
-                            }
-
-                            // 안드로이드에서 익명 클래스 내부에 변수를 전달하기 위해 final 선언
-                            final String finalResult = tempResult;
-
-                            viewModel.handler.post(new Runnable() {
-                                @Override
-                                public void run() {
-                                    // 🚀 [수정] ViewModel에 결과 저장 (ResultFragment가 실시간으로 감지)
-                                    find_columview.setText(sendArrayListResult.get(0).toString());
-                                    viewModel.setResultText(finalResult);
-                                    // 기존 방식: Fragment Result API로 전달
-                                    Bundle bundle = new Bundle();
-                                    bundle.putString("QUERY_DATA", finalResult);
-                                    getParentFragmentManager().setFragmentResult("DATA_KEY", bundle);
-                                }
-                            });
-                        } catch (Exception e) {
-                            final String errorMessage = e.getMessage();
-                            viewModel.handler.post(() -> {
-                                viewModel.setResultText("조회 에러: " + errorMessage);
-                            });
-                            e.printStackTrace();
-                        } finally {
-                            // 1. 커서는 무조건 닫아줍니다. (메모리 누수 방지)
-                            if (cursor != null && !cursor.isClosed()) cursor.close();
-                            // 2. DB가 열려있고, 트랜잭션 중이 아닐 때만 닫아줍니다!
-                            if (viewModel.mDb != null && viewModel.mDb.isOpen()) {
-                                if (!viewModel.mDb.inTransaction()) { // 🚀 현재 트랜잭션 중이 아니라면? (자물쇠가 풀려있다면)
-                                    viewModel.mDb.close();
-                                    viewModel.mDb = null;
-                                } else {
-                                    Log.d("DB_TEST", "현재 트랜잭션 대기 중이므로 DB를 닫지 않고 유지합니다.");
-                                }
-                            }
-
-
-                            //____
-                            if (sendArrayListResult != null && !sendArrayListResult.isEmpty()) {
-                                int i = 0;
-                                int idCol = -1;
-                                int nameCol = -1;
-                                int startDateCol = -1;
-                                int endDateCol = -1;
-                                int colorCol = -1;
-                                int startTimeCol = -1;
-                                int endTimeCol = -1;
-                                int memoCol = -1;
-                                int isAllDayCol = -1;
-                                int category1Col = -1;
-                                int category2Col = -1;
-                                int createdAtCol = -1;
-                                for (String col : (ArrayList<String>)sendArrayListResult.get(0)) {
-                                    switch (col){
-                                        case "id":
-                                            idCol=i;
-                                            break;
-                                        case "name":
-                                            nameCol=i;
-                                            break;
-                                        case "startDate":
-                                            startDateCol=i;
-                                            break;
-                                        case "endDate":
-                                            endDateCol=i;
-                                            break;
-                                        case "color":
-                                            colorCol=i;
-                                            break;
-                                        case "startTime":
-                                            startTimeCol=i;
-                                            break;
-                                        case "endTime":
-                                            endTimeCol=i;
-                                            break;
-                                        case "memo":
-                                            memoCol=i;
-                                            break;
-                                        case "isAllDay":
-                                            isAllDayCol=i;
-                                            break;
-                                        case "category1":
-                                            category1Col=i;
-                                            break;
-                                        case "category2":
-                                            category2Col=i;
-                                            break;
-                                        case "createdAt":
-                                            createdAtCol=i;
-                                            break;
-                                    }
-                                    i++;
-                                }
-
-                                OuterCalendarAdapter.sSCModel = new ArrayList<SelectSendCalenderModel>();
-                                for (int j = 1; j < sendArrayListResult.size(); j++) {
-                                    ArrayList<String> selevent = (ArrayList<String>)sendArrayListResult.get(j);
-                                    SelectSendCalenderModel model = new SelectSendCalenderModel.Builder()
-                                            .setId(idCol != -1 ? selevent.get(idCol) : null)
-                                            .setName(nameCol != -1 ? selevent.get(nameCol) : null)
-                                            .setStartDate(startDateCol != -1 && selevent.get(startDateCol) != null ? LocalDate.parse(selevent.get(startDateCol)) : (LocalDate)null)
-                                            .setEndDate(endDateCol != -1 && selevent.get(endDateCol) != null ? LocalDate.parse(selevent.get(endDateCol)) : (LocalDate)null)
-                                            .setColor(colorCol != -1 && selevent.get(colorCol) != null ? Integer.parseInt(selevent.get(colorCol)) : 0)
-                                            .setStartTime(startTimeCol != -1 ? selevent.get(startTimeCol) : null)
-                                            .setEndTime(endTimeCol != -1 ? selevent.get(endTimeCol) : null)
-                                            .setMemo(memoCol != -1 ? selevent.get(memoCol) : null)
-                                            .setIsAllDay(isAllDayCol != -1 && selevent.get(isAllDayCol) != null ? Boolean.parseBoolean(selevent.get(isAllDayCol)) : false)
-                                            .setCategory1(category1Col != -1 ? selevent.get(category1Col) : null)
-                                            .setCategory2(category2Col != -1 ? selevent.get(category2Col) : null)
-                                            .setCreatedAt(createdAtCol != -1 ? selevent.get(createdAtCol) : null)
-                                            .build();
-                                    OuterCalendarAdapter.sSCModel.add(model);
-                                }
-                            }
-                            //__
-
-
-
-
+                            resultBuilder.append("\n");
+                            sendArrayListResult.add(new ArrayList<>(stringEvent));
                         }
                     }
-                });
-            }
+                    viewModel.handler.post(() -> {
+                        find_columview.setText(sendArrayListResult.get(0).toString());
+                        viewModel.setResultText(resultBuilder.toString());
+                        processSelectResult();
+                    });
+                } catch (Exception e) {
+                    viewModel.handler.post(() -> viewModel.setResultText("에러: " + e.getMessage()));
+                } finally {
+                    if (cursor != null) cursor.close();
+                }
+            });
         });
 
         return view;
@@ -569,30 +279,53 @@ public class QueryFragment extends Fragment {
 
     private void setupSymbolButton(Button button, String symbol) {
         if (button != null) {
-            button.setOnClickListener(v -> {
-                int start = Math.max(queryEditText.getSelectionStart(), 0);
-                int end = Math.max(queryEditText.getSelectionEnd(), 0);
-                queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
-                        symbol, 0, symbol.length());
-            });
+            button.setOnClickListener(v -> insertAtCursor(symbol));
         }
+    }
 
-        // removequery 버튼 클릭 처리
-        if (removequery_btn != null) {
-            removequery_btn.setOnClickListener(v -> {
-                SavedQuery selected = savedQueryAdapter.getSelectedQuery();
-                if (selected != null) {
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        AppDatabase.getDatabase(requireContext()).savedQueryDao().deleteById(selected.getId());
-                        requireActivity().runOnUiThread(() -> {
-                            Toast.makeText(requireContext(), "쿼리가 삭제되었습니다.", Toast.LENGTH_SHORT).show();
-                            refreshSavedQueries();
-                        });
-                    });
-                } else {
-                    Toast.makeText(requireContext(), "삭제할 쿼리를 선택해주세요.", Toast.LENGTH_SHORT).show();
-                }
-            });
+    private void insertAtCursor(String text) {
+        int start = Math.max(queryEditText.getSelectionStart(), 0);
+        int end = Math.max(queryEditText.getSelectionEnd(), 0);
+        queryEditText.getText().replace(Math.min(start, end), Math.max(start, end),
+                text, 0, text.length());
+    }
+
+    private void processSelectResult() {
+        if (sendArrayListResult == null || sendArrayListResult.isEmpty()) return;
+        
+        ArrayList<String> cols = (ArrayList<String>) sendArrayListResult.get(0);
+        int idCol = cols.indexOf("id");
+        int checkCol = cols.indexOf("isChecked");
+        if (checkCol == -1) checkCol = cols.indexOf("check");
+        int oneCol = cols.indexOf("one");
+        int twoCol = cols.indexOf("two");
+        int threeCol = cols.indexOf("three");
+        int nameCol = cols.indexOf("name");
+        int commentCol = cols.indexOf("comment");
+        int contentCol = cols.indexOf("content");
+        int startDateCol = cols.indexOf("startDate");
+        int endDateCol = cols.indexOf("endDate");
+        int colorCol = cols.indexOf("color");
+        int createdCol = cols.indexOf("createdAt");
+
+        OuterCalendarAdapter.sSCModel = new ArrayList<>();
+        for (int j = 1; j < sendArrayListResult.size(); j++) {
+            ArrayList<String> row = (ArrayList<String>) sendArrayListResult.get(j);
+            SelectSendCalenderModel model = new SelectSendCalenderModel.Builder()
+                    .setId(idCol != -1 ? row.get(idCol) : "0")
+                    .setChecked(checkCol != -1 && (row.get(checkCol).equals("1") || Boolean.parseBoolean(row.get(checkCol))))
+                    .setOne(oneCol != -1 ? row.get(oneCol) : "")
+                    .setTwo(twoCol != -1 ? row.get(twoCol) : "")
+                    .setThree(threeCol != -1 ? row.get(threeCol) : "")
+                    .setName(nameCol != -1 ? row.get(nameCol) : "")
+                    .setComment(commentCol != -1 ? row.get(commentCol) : "")
+                    .setContent(contentCol != -1 ? row.get(contentCol) : "")
+                    .setStartDate(startDateCol != -1 ? row.get(startDateCol) : null)
+                    .setEndDate(endDateCol != -1 ? row.get(endDateCol) : null)
+                    .setColor(colorCol != -1 ? Integer.parseInt(row.get(colorCol)) : 0)
+                    .setCreatedAt(createdCol != -1 ? row.get(createdCol) : null)
+                    .build();
+            OuterCalendarAdapter.sSCModel.add(model);
         }
     }
 
@@ -600,9 +333,7 @@ public class QueryFragment extends Fragment {
         Executors.newSingleThreadExecutor().execute(() -> {
             java.util.List<SavedQuery> savedQueries = AppDatabase.getDatabase(requireContext()).savedQueryDao().getAllSavedQueries();
             requireActivity().runOnUiThread(() -> {
-                if (savedQueryAdapter != null) {
-                    savedQueryAdapter.setQueries(savedQueries);
-                }
+                if (savedQueryAdapter != null) savedQueryAdapter.setQueries(savedQueries);
             });
         });
     }
@@ -610,18 +341,12 @@ public class QueryFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        if (queryEditText != null) {
-            // 화면을 벗어날 때 (스와이프 할 때) 현재 적힌 글자를 ViewModel에 저장
-            viewModel.setQueryText(queryEditText.getText().toString());
-        }
+        if (queryEditText != null) viewModel.setQueryText(queryEditText.getText().toString());
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        if (queryEditText != null) {
-            viewModel.setQueryText(queryEditText.getText().toString());
-        }
+        if (queryEditText != null) viewModel.setQueryText(queryEditText.getText().toString());
     }
 }
-

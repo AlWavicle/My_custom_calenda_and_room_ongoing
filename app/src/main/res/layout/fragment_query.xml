@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -12,182 +13,72 @@
             android:id="@+id/queryEditText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="select * from events"
+            android:gravity="top"
             android:inputType="textMultiLine"
-            android:minLines="10"
-            android:gravity="top"/>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <EditText
-            android:id="@+id/dateconversionEditText"
-            android:layout_width="300dp"
+            android:minLines="6"
+            android:text="select * from events" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="202 6 년 5월 6 일 "
-            android:inputType="textMultiLine"
-            android:gravity="top"/>
-        <Button
-            android:id="@+id/convertDateBtn"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:padding="10dp"
-            android:minWidth="30dp"
-            android:minHeight="0dp"
-            android:text="convert"/>
-    </LinearLayout>
+            android:orientation="horizontal">
+            <EditText
+                android:id="@+id/dateconversionEditText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="2026-05-06"
+                android:inputType="text" />
+            <Button
+                android:id="@+id/convertDateBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Convert" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/equel_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="=" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/open_parenthesis_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="(" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/close_parenthesis_btn" android:layout_width="40dp" android:layout_height="40dp" android:text=")" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/Lessthansign" android:layout_width="40dp" android:layout_height="40dp" android:text="&lt;" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/greaterthan_btn" android:layout_width="40dp" android:layout_height="40dp" android:text=">" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/Apostrophe_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="'" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/Percent_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="%" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <Button android:id="@+id/underscore_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="_" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/plus_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="+" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/minus_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="-" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/Asterisk_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="*" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/slesh_btn" android:layout_width="40dp" android:layout_height="40dp" android:text="/" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/past_btn" android:layout_width="60dp" android:layout_height="40dp" android:text="Paste" android:padding="0dp" android:minWidth="0dp" android:minHeight="0dp"/>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
             <Button
-                android:id="@+id/equel_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="="/>
+                android:id="@+id/selectquery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Select" />
             <Button
-                android:id="@+id/open_parenthesis_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="("/>
-            <Button
-                android:id="@+id/close_parenthesis_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text=")"/>
-            <Button
-                android:id="@+id/Lessthansign"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="&lt;"/>
-            <Button
-                android:id="@+id/openparenthesis_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text=">"/>
-
-            <Button
-                android:id="@+id/Apostrophe_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="'"/>
-            <Button
-                android:id="@+id/ampersand_btn"
-                android:layout_width="40dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="&amp;"/>
-            <Button
-                android:id="@+id/pipe_btn"
-                android:layout_width="40dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="|"/>
-
+                android:id="@+id/insertquery_btn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Insert/Update" />
         </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
 
-            <Button
-                android:id="@+id/underscore_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="_"/>
-            <Button
-                android:id="@+id/plus_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="+"/>
-            <Button
-                android:id="@+id/minus_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="-"/>
-            <Button
-                android:id="@+id/Asterisk_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="*"/>
-            <Button
-                android:id="@+id/slesh_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="/"/>
-            <Button
-                android:id="@+id/Percent_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="%"/>
-            <Button
-                android:id="@+id/past_btn"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="0dp"
-                android:text="past"/>
-        </LinearLayout>
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
-        <Button
-            android:id="@+id/selectquery_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="selectquery_btn" />
-
-        <Button
-            android:id="@+id/insertquery_btn"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="insertquery_btn" />
-    </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -197,52 +88,42 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="2dp"
-                android:text="pre\nquery" />
-
+                android:text="Prev" />
             <Button
                 android:id="@+id/nextquery_btn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="2dp"
-                android:text="next\nquery" />
+                android:text="Next" />
             <Button
                 android:id="@+id/savequery_btn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="2dp"
-                android:text="save\nquery" />
+                android:text="Save" />
             <Button
                 android:id="@+id/removequery_btn"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:padding="0dp"
-                android:minWidth="0dp"
-                android:minHeight="2dp"
-                android:text="remove\nquery" />
+                android:text="Remo" />
         </LinearLayout>
+
         <TextView
             android:id="@+id/columview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:padding="8dp"
             android:text="Columns"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textIsSelectable="true"/>
+            android:textIsSelectable="true"
+            android:textSize="14sp"
+            android:textStyle="bold" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/savedquery"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="300dp"
             android:nestedScrollingEnabled="true" />
+
     </LinearLayout>
 </ScrollView>

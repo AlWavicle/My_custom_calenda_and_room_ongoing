@@ -7,7 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
-@Database(entities = {Event.class, SavedQuery.class}, version = 4) // 버전 상향
+@Database(entities = {Event.class, SavedQuery.class}, version = 6) // 버전 상향 (5 -> 6)
 @TypeConverters({Converters.class})
 public abstract class AppDatabase extends RoomDatabase {
     public abstract EventDao eventDao();

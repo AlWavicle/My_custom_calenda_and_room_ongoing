@@ -24,6 +24,9 @@ public class InnerDayAdapter extends RecyclerView.Adapter<InnerDayAdapter.DayVie
         void onDayClick(LocalDate date, int parentWeekPosition,
                         ArrayList<SelectSendCalenderModel> eventsOnDay,
                         ArrayList<Integer> eventsIndex);
+        void onEventEdit(SelectSendCalenderModel event);
+        void onCheckChanged(SelectSendCalenderModel event, boolean isChecked);
+        void onEventSelected(SelectSendCalenderModel event);
     }
 
     public InnerDayAdapter(WeekRow weekRow, int parentWeekPosition, List<LocalDate> seldate, OnDayClickListener listener) {
